@@ -351,8 +351,8 @@ class RoonApi():
             if self._roonsocket.connected:
                 break
             elif timeout == 100:
-                LOGGER.error("Failed to connect to socket!")
-                return
+                LOGGER.error("Failed to connect to socket! Will keep retrying...")
+                timeout = 0
             elif self._exit:
                 return
             time.sleep(0.5)

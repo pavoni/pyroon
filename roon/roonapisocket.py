@@ -25,8 +25,8 @@ class RoonApiWebSocket(threading.Thread):
         while not self._exit:
             try:
                self._socket.run_forever() # within try-except to handle connection loss
-            except:
-                pass # TODO: should we also add the subscriptions again ?
+            except Exception as exc:
+                LOGGER.exception(str(exc)) # TODO: should we also add the subscriptions again ?
 
     def stop(self):
         self._exit = True
@@ -70,7 +70,9 @@ class RoonApiWebSocket(threading.Thread):
             del self._subscriptions[item[0]]
 
 
-    def on_message(self, ws, message):
+    def on_message(self, ws, message=None):
+        if not message:
+            message = ws # compatability fix because of change in websocket-client v0.49
         try:
             lines = message.split("\n")
             header = lines[0].decode("utf-8")
@@ -87,14 +89,16 @@ class RoonApiWebSocket(threading.Thread):
         except Exception as exc:
             LOGGER.warning("Received malformed message (%s)\n%s" %(str(exc, message)))
 
-    def on_error(self, ws, error):
+    def on_error(self, ws, error=None):
+        if not error:
+            error = ws # compatability fix because of change in websocket-client v0.49
         LOGGER.error(error)
 
-    def on_close(self, ws):
+    def on_close(self, ws=None):
         LOGGER.info("session closed")
         self.connected = False
 
-    def on_open(self, ws):
+    def on_open(self, ws=None):
         LOGGER.debug('Opened Websocket connection to the server...')
         self.connected = True
 
