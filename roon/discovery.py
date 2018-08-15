@@ -11,22 +11,22 @@ class RoonDiscovery(object):
         self.last_scan = None
         self._lock = threading.RLock()
 
-    def scan(self):
+    def scan(self, single=False):
         """Scan the network for servers."""
         with self._lock:
-            self.update()
+            self.update(single)
 
-    def all(self):
+    def all(self, single=False):
         """Scan and return all found entries as a list. Each server is a tuple of host,port."""
-        self.scan()
+        self.scan(single)
         return list(self.entries)
 
     def first(self):
         ''' returns first server that is found'''
-        all_servers = self.all()
+        all_servers = self.all(True)
         return all_servers[0] if all_servers else (None, None)
 
-    def update(self):
+    def update(self, single=False):
         """update the server entry with details"""
         this_dir = os.path.dirname(os.path.abspath(__file__))
         sood_file = os.path.join(this_dir, ".soodmsg")
@@ -50,6 +50,9 @@ class RoonDiscovery(object):
                         port = int(lines[5].encode("utf-8").strip())
                         host = server[0]
                         entries.append((host, port))
+                        if single:
+                            # we're only interested in the first server found
+                            break
                 except socket.timeout:
                     break
                 except Exception as exc:

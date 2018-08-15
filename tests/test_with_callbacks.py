@@ -23,6 +23,7 @@ appinfo = {
         "email": "my@email.com"
     }
 
+# callback will be called when we register for state events
 def state_callback(event, changed_items):
     print("%s: %s" %(event, changed_items))
 
@@ -30,9 +31,22 @@ def state_callback(event, changed_items):
 roonapi = RoonApi(appinfo, token)
 roonapi.register_state_callback(state_callback)
 
+# list all zones
+print(" ###### zones ######")
+for zone in roonapi.zones.values():
+    print(zone["display_name"])
 
+# list all outputs
+print("###### outputs ########")
+for output in roonapi.outputs.values():
+    print(output["display_name"])
+
+
+# cleanup handler to properly close the connection and save the token for later use
 def cleanup(signum, frame):
     roonapi.stop()
+    token = roonapi.token
+    print("token: %s" % token)
     if token:
         with open("roontoken.txt", "w") as f:
             f.write(token)

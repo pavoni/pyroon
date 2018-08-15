@@ -6,11 +6,16 @@ from .discovery  import RoonDiscovery
 
 class RoonApi():
     _roonsocket = None
+    _token = None
     _exit = False
     _zones = {}
     _outputs = {}
     _state_callbacks = []
 
+    @property
+    def token(self):
+        return self._token
+    
     @property
     def zones(self):
         return self._zones if self._zones else self._get_zones()
@@ -130,7 +135,11 @@ class RoonApi():
             time.sleep(0.5)
             timeout += 1
         # authenticate
-        self._register_app(appinfo, token)
+        self._token = token
+        self._register_app(appinfo)
+        # fill zones and outputs dicts one time so the data is available right away
+        self._zones = self._get_zones()
+        self._outputs = self._get_outputs()
         # subscribe to state change events
         self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
         self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
@@ -198,12 +207,18 @@ class RoonApi():
                 callback(event, changed_ids)
 
     def _get_outputs(self):
-        return self._request(ServiceTransport + "/get_outputs")
+        outputs = {}
+        for output in self._request(ServiceTransport + "/get_outputs")["outputs"]:
+            outputs[output["output_id"]] = output
+        return outputs
 
     def _get_zones(self):
-        return self._request(ServiceTransport + "/get_zones")
+        zones = {}
+        for zone in self._request(ServiceTransport + "/get_zones")["zones"]:
+            zones[zone["zone_id"]] = zone
+        return zones
 
-    def _register_app(self, appinfo, token):
+    def _register_app(self, appinfo):
         ''' register this app with roon and wait for the authentication token'''
         if not appinfo or not isinstance(appinfo, dict):
             raise("appinfo missing or in incorrect format!")
@@ -213,18 +228,20 @@ class RoonApi():
             appinfo["optional_services"] = []
         if not appinfo.get("provided_services"):
             appinfo["provided_services"] = []
-        appinfo["token"] = token
+        if self._token:
+            appinfo["token"] = self._token
         request_id = self._roonsocket.send(ServiceRegistry + "/register", appinfo)
-        if not token:
+        if not self._token:
             LOGGER.info("The application should be approved within Roon's settings.")
         else:
             LOGGER.info("Registering the app with Roon...")
         while not self._exit:
             if self._roonsocket.results.get(request_id):
-                token = self._roonsocket.results[request_id].get("token")
-                if token:
+                _token = self._roonsocket.results[request_id].get("token")
+                if _token:
                     LOGGER.info("Registered to Roon server %s" % self._roonsocket.results[request_id]["display_name"])
                     LOGGER.debug(self._roonsocket.results[request_id])
+                    self._token = _token
                     del self._roonsocket.results[request_id]
                     break
             time.sleep(1)
