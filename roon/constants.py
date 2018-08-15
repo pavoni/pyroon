@@ -17,6 +17,8 @@ MessageContinue     = "CONTINUE"
 
 
 logformat = logging.Formatter('%(asctime)-15s %(levelname)-5s  %(module)s -- %(message)s')
-LOGGER = logging.getLogger(__name__)
-LOGGER.addHandler(logging.StreamHandler())
+LOGGER = logging.getLogger("roonapi")
+consolehandler = logging.StreamHandler()
+consolehandler.setFormatter(logformat)
+LOGGER.addHandler(consolehandler)
 LOGGER.setLevel(logging.INFO)

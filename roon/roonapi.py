@@ -144,10 +144,11 @@ class RoonApi():
             self._roonsocket.stop()
 
     def _on_state_change(self, msg):
-        changed_ids = []
-        filter_keys = []
-        event = ""
+        ''' process messages we receive from the roon websocket into a more usable format'''
+        events = []
         for state_key, state_values in msg.items():
+            changed_ids = []
+            filter_keys = []
             if state_key in ["zones_seek_changed", "zones_changed", "zones_added", "zones"]:
                 for zone in state_values:
                     if zone["zone_id"] in self._zones:
@@ -165,6 +166,7 @@ class RoonApi():
                         event = "zones_seek_changed"
                     else:
                         event = "zones_changed"
+                events.append((event, changed_ids, filter_keys))
             elif state_key in ["outputs_changed", "outputs_added", "outputs"]:
                 for output in state_values:
                     if output["output_id"] in self._outputs:
@@ -174,6 +176,7 @@ class RoonApi():
                     changed_ids.append(zone["zone_id"])
                     filter_keys.append(zone["display_name"])
                     event = "outputs_changed"
+                    events.append((event, changed_ids, filter_keys))
             elif state_key == "zones_removed":
                 for item in state_values:
                     del self._zones[item]
@@ -182,18 +185,17 @@ class RoonApi():
                     del self._outputs[item]
             else:
                 LOGGER.warning("unknown state change: %s" % msg)
-        if not event or not changed_ids:
-            return
-        filter_keys.extend(changed_ids)
-        for item in self._state_callbacks:
-            callback = item[0]
-            event_filter = item[1]
-            id_filter = item[2]
-            if event_filter and (event not in event_filter):
-                continue
-            if id_filter and set(id_filter).isdisjoint(filter_keys):
-                continue
-            callback(event, changed_ids)
+        for event, changed_ids, filter_keys in events:
+            filter_keys.extend(changed_ids)
+            for item in self._state_callbacks:
+                callback = item[0]
+                event_filter = item[1]
+                id_filter = item[2]
+                if event_filter and (event not in event_filter):
+                    continue
+                if id_filter and set(id_filter).isdisjoint(filter_keys):
+                    continue
+                callback(event, changed_ids)
 
     def _get_outputs(self):
         return self._request(ServiceTransport + "/get_outputs")
@@ -213,7 +215,10 @@ class RoonApi():
             appinfo["provided_services"] = []
         appinfo["token"] = token
         request_id = self._roonsocket.send(ServiceRegistry + "/register", appinfo)
-        LOGGER.debug("waiting for authentication...")
+        if not token:
+            LOGGER.info("The application should be approved within Roon's settings.")
+        else:
+            LOGGER.info("Registering the app with Roon...")
         while not self._exit:
             if self._roonsocket.results.get(request_id):
                 token = self._roonsocket.results[request_id].get("token")

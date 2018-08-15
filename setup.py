@@ -8,20 +8,23 @@
 # python setup.py register -r pypi
 # python setup.py sdist upload -r pypi
 
+VERSION = "0.0.1"
+NAME = "roonapi"
+INSTALL_REQUIRES = ["websocket-client"]
 
 from distutils.core import setup
 setup(
-    name='roon',
+    name=NAME,
     packages=['roon'],
-    version='1.0.0',
+    version=VERSION,
     description='Provides a python interface to interact with Roon',
+    long_description=open("README.md").read(),
     author='Marcel van der Veldt',
     author_email='marcelveldt@users.noreply.github.com',
     url='https://github.com/marcelveldt/python-roon',
-    download_url = 'https://github.com/marcelveldt/python-roon/tarball/1.0.0',
-    keywords= ['roon', 'roon labs', 'roon python'],
+    download_url = 'https://github.com/marcelveldt/python-roon.git',
+    keywords= ['roon', 'roon labs', 'roon python', 'roon api'],
     classifiers = [],
     package_data = {'': ['.soodmsg'] },
-    install_requires=[ 'websocket-client',
-        'logging', ],
+    install_requires=INSTALL_REQUIRES,
     )
