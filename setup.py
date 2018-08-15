@@ -12,13 +12,16 @@
 from distutils.core import setup
 setup(
     name='roon',
-    packages=['python-roon'],
-    version='1.0',
+    packages=['roon'],
+    version='1.0.0',
     description='Provides a python interface to interact with Roon',
     author='Marcel van der Veldt',
     author_email='marcelveldt@users.noreply.github.com',
     url='https://github.com/marcelveldt/python-roon',
-    download_url = 'https://github.com/mezz64/pyemby/tarball/1.5',
+    download_url = 'https://github.com/marcelveldt/python-roon/tarball/1.0.0',
     keywords= ['roon', 'roon labs', 'roon python'],
     classifiers = [],
+    package_data = {'': ['.soodmsg'] },
+    install_requires=[ 'websocket-client',
+        'logging', ],
     )

@@ -1,6 +1,6 @@
 import time
 from .constants import *
-from .websocket import RoonApiWebSocket
+from .roonapisocket import RoonApiWebSocket
 from .discovery  import RoonDiscovery
 
 
