@@ -338,6 +338,8 @@ class RoonApi():
                 time.sleep(10)
             else:
                 LOGGER.info("Discovered Roon server in the network at IP %s" % host)
+        if not isinstance(appinfo, dict):
+            raise("appinfo should be provided as dict")
         self._host = host
         self._port = port
         ws_address = "ws://%s:%s/api" %(host, port)
