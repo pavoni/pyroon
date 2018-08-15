@@ -7,6 +7,8 @@ from .discovery  import RoonDiscovery
 class RoonApi():
     _roonsocket = None
     _token = None
+    _host = ""
+    _port = 0
     _exit = False
     _zones = {}
     _outputs = {}
@@ -14,29 +16,35 @@ class RoonApi():
 
     @property
     def token(self):
+        ''' the authentication key that was retrieved from the registration with Roon'''
         return self._token
     
     @property
     def zones(self):
+        ''' all zones, returned as dict'''
         return self._zones if self._zones else self._get_zones()
 
     @property
     def outputs(self):
+        ''' all outputs, returned as dict'''
         return self._outputs if self._outputs else self._get_outputs()
 
     def zone_by_name(self, zone_name):
+        ''' get zone details by name'''
         for zone in self.zones.values():
             if zone["display_name"] == zone_name:
                 return zone
         return None
 
     def output_by_name(self, output_name):
+        ''' get the output details from the name'''
         for output in self.outputs.values():
             if output["display_name"] == output_name:
                 return output
         return None
 
     def zone_by_output_id(self, output_id):
+        ''' get the zone details by output id'''
         for zone in self.zones.values():
             for output in zone["outputs"]:
                 if output["output_id"] == output_id:
@@ -44,23 +52,43 @@ class RoonApi():
         return None
 
     def zone_by_output_name(self, output_name):
+        ''' 
+            get the zone details by an output name
+            params:
+                output_name: the name of the output
+            returns: full zone details (dict)
+        '''
         for zone in self.zones.values():
             for output in zone["outputs"]:
                 if output["display_name"] == output_name:
                     return zone
         return None
 
+    def get_image(self, image_key, scale="fit", width=500, height=500):
+        ''' 
+            get the image url for the specified image key
+            params:
+                image_key: the key for the image as retrieved in other api calls
+                scale: optional (value of fit, fill or stretch)
+                width: the width of the image (required if scale is specified)
+                height: the height of the image (required if scale is set)
+            returns: string with the full url to the image
+        '''
+        return "http://%s:%s/api/image/image_key?scale=%s&width=%s&height=%s" %(self._host, self._port, scale, width, height)
+
+
     def playback_control(self, zone_or_output_id, control="play"):
         '''
             send player command to the specified zone
-            param control:
-                 * "play" - If paused or stopped, start playback
-                 * "pause" - If playing or loading, pause playback
-                 * "playpause" - If paused or stopped, start playback. If playing or loading, pause playback.
-                 * "stop" - Stop playback and release the audio device immediately
-                 * "previous" - Go to the start of the current track, or to the previous track
-                 * "next" - Advance to the next track
-             param output_id: the id of the zone or output
+            params:
+                zone_or_output_id: the id of the zone or output
+                control:
+                     * "play" - If paused or stopped, start playback
+                     * "pause" - If playing or loading, pause playback
+                     * "playpause" - If paused or stopped, start playback. If playing or loading, pause playback.
+                     * "stop" - Stop playback and release the audio device immediately
+                     * "previous" - Go to the start of the current track, or to the previous track
+                     * "next" - Advance to the next track
         '''
         data = {
                    "zone_or_output_id": zone_or_output_id,
@@ -68,15 +96,94 @@ class RoonApi():
                 }
         return self._request(ServiceTransport + "/control", data)
 
+    def standby(self, output_id, control_key=None):
+        '''
+            send standby command to the specified output
+            params:
+                output_id: the id of the output to put in standby
+                control_key: The control_key that identifies the source_control that is to be put into standby. 
+                             If omitted, then all source controls on this output that support standby will be put into standby.
+        '''
+        data = {  "output_id": output_id, "control_key": control_key }
+        return self._request(ServiceTransport + "/standby", data)
+
+    def convenience_switch(self, output_id, control_key=None):
+        '''
+            Convenience switch an output, taking it out of standby if needed.
+            params:
+                output_id: the id of the output that should be convenience-switched.
+                control_key: The control_key that identifies the source_control that is to be switched.
+                             If omitted, then all controls on this output will be convenience switched.
+        '''
+        data = {  "output_id": output_id, "control_key": control_key }
+        return self._request(ServiceTransport + "/convenience_switch", data)
+
+    def mute(self, output_id, mute=True):
+        '''
+            Mute/unmute an output.
+            params:
+                output_id: the id of the output that should be muted/unmuted
+                mute: bool if the output should be muted. Will unmute if set to False
+        '''
+        how = "mute" if mute else "unmute"
+        data = {  "output_id": output_id, "how": how }
+        return self._request(ServiceTransport + "/mute", data)
+
+    def change_volume(self, output_id, value, method="absolute"):
+        '''
+            Change the volume of an output. Grouped zones can have differently behaving
+            volume systems (dB, min/max, steps, etc..), so you have to change the volume
+            different for each of those outputs.
+            params:
+                output_id: the id of the output
+                value: The new volume value, or the increment value or step
+                method: How to interpret the volume ('absolute'|'relative'|'relative_step')
+        '''
+        data = {  "output_id": output_id, "how": method, "value": value }
+        return self._request(ServiceTransport + "/change_volume", data)
+
+    def seek(self, zone_or_output_id, seconds, method="absolute"):
+        '''
+            Seek to a time position within the now playing media
+            params:
+                zone_or_output_id: the id of the zone or output
+                seconds: The target seek position
+                method: How to interpret the target seek position ('absolute'|'relative')
+        '''
+        data = {  "zone_or_output_id": zone_or_output_id, "how": method, "seconds": seconds }
+        return self._request(ServiceTransport + "/seek", data)
+
+    def shuffle(self, zone_or_output_id, shuffle=True):
+        '''
+            Enable/disable shuffle
+            params:
+                zone_or_output_id: the id of the output or zone
+                shuffle: bool if shuffle should be enabled. False will disable shuffle
+        '''
+        data = {  "zone_or_output_id": zone_or_output_id, "shuffle": shuffle }
+        return self._request(ServiceTransport + "/change_settings", data)
+
+    def repeat(self, zone_or_output_id, repeat=True):
+        '''
+            Enable/disable repeat (loop mode)
+            params:
+                zone_or_output_id: the id of the output or zone
+                repeat: bool if repeat should be enabled. False will disable shuffle
+        '''
+        loop = "loop" if repeat else "disabled"
+        data = {  "zone_or_output_id": zone_or_output_id, "loop": loop }
+        return self._request(ServiceTransport + "/change_settings", data)
+
     def register_state_callback(self, callback, event_filter=None, id_filter=None):
         '''
             register a callback to be informed about changes to zones or outputs
-            callback: method to be called when state changes occur, it will be passed an event param as string and a list of changed objects
-                      callback will be called with params:
-                      - event: string with name of the event ("zones_changed", "zones_seek_changed", "outputs_changed")
-                      - a list with the id's that changed
-            event_filter: only callback if the event is in this list
-            id_filter: one or more zone or output id's or names to filter on (list or string)
+            params:
+                callback: method to be called when state changes occur, it will be passed an event param as string and a list of changed objects
+                          callback will be called with params:
+                          - event: string with name of the event ("zones_changed", "zones_seek_changed", "outputs_changed")
+                          - a list with the zone or output id's that changed
+                event_filter: only callback if the event is in this list
+                id_filter: one or more zone or output id's or names to filter on (list or string)
         '''
         if not event_filter:
             event_filter = []
@@ -100,6 +207,35 @@ class RoonApi():
             opt_data = None
         self._roonsocket.subscribe(ServiceTransport, "queue", callback, opt_data)
 
+    def browse_browse(self, opts):
+        '''
+            undocumented and complex browse call on the roon api
+            reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
+        '''
+        return self._request(ServiceBrowse + "/browse", opts)
+
+    def browse_load(self, opts):
+        '''
+            undocumented and complex browse call on the roon api
+            reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
+        '''
+        return self._request(ServiceBrowse + "/load", opts)
+
+    def browse_pop_all(self, opts):
+        '''
+            undocumented and complex browse call on the roon api
+            reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
+        '''
+        return self._request(ServiceBrowse + "/pop_all", opts)
+
+    def browse_pop(self, opts):
+        '''
+            undocumented and complex browse call on the roon api
+            reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
+        '''
+        return self._request(ServiceBrowse + "/pop", opts)
+
+
 
     ############# private methods ##################
     
@@ -108,7 +244,7 @@ class RoonApi():
         '''
             Set up the connection with Roon
             appinfo: a dict of the required information about the app that should be connected to the api
-            token: used for presistant storage of the auth token, will be get and set so handle saving of the key yourself
+            token: used for presistant storage of the auth token, will be set to token attribute if retrieved. You should handle saving of the key yourself
             host: optional the ip or hostname of the Roon server, will be auto discovered if ommitted
             port: optional the http port of the Roon websockets api. Should be default of 9100
         '''
@@ -119,6 +255,8 @@ class RoonApi():
                 time.sleep(10)
             else:
                 LOGGER.info("Discovered Roon server in the network at IP %s" % host)
+        self._host = host
+        self._port = port
         ws_address = "ws://%s:%s/api" %(host, port)
         self._roonsocket = RoonApiWebSocket(ws_address)
         self._roonsocket.start()
@@ -223,7 +361,7 @@ class RoonApi():
         if not appinfo or not isinstance(appinfo, dict):
             raise("appinfo missing or in incorrect format!")
         if not appinfo.get("required_services"):
-            appinfo["required_services"] = [ServicePing, ServiceTransport]
+            appinfo["required_services"] = [ServicePing, ServiceTransport, ServiceBrowse]
         if not appinfo.get("optional_services"):
             appinfo["optional_services"] = []
         if not appinfo.get("provided_services"):
