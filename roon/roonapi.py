@@ -22,12 +22,12 @@ class RoonApi():
     @property
     def zones(self):
         ''' all zones, returned as dict'''
-        return self._zones if self._zones else self._get_zones()
+        return self._zones
 
     @property
     def outputs(self):
         ''' all outputs, returned as dict'''
-        return self._outputs if self._outputs else self._get_outputs()
+        return self._outputs
 
     def zone_by_name(self, zone_name):
         ''' get zone details by name'''
@@ -251,6 +251,8 @@ class RoonApi():
             opts["zone_or_output_id"] = zone_or_output_id
         # go to first level (home)
         result = self.browse_browse(opts)
+        if not result:
+            return None
         # items at first level (mainmenu items)
         result = self.browse_load(opts)
         opts["pop_all"] = False
@@ -430,14 +432,18 @@ class RoonApi():
 
     def _get_outputs(self):
         outputs = {}
-        for output in self._request(ServiceTransport + "/get_outputs")["outputs"]:
-            outputs[output["output_id"]] = output
+        data = self._request(ServiceTransport + "/get_outputs")
+        if data:
+            for output in data["outputs"]:
+                outputs[output["output_id"]] = output
         return outputs
 
     def _get_zones(self):
         zones = {}
-        for zone in self._request(ServiceTransport + "/get_zones")["zones"]:
-            zones[zone["zone_id"]] = zone
+        data = self._request(ServiceTransport + "/get_zones")
+        if data:
+            for zone in data["zones"]:
+                zones[zone["zone_id"]] = zone
         return zones
 
     def _register_app(self, appinfo):
