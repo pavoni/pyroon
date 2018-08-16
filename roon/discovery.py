@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import threading
 import socket
 import os.path
@@ -32,6 +33,7 @@ class RoonDiscovery(object):
         sood_file = os.path.join(this_dir, ".soodmsg")
         with open(sood_file) as f:
             msg = f.read()
+        msg = msg.encode()
         entries = []
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -42,6 +44,7 @@ class RoonDiscovery(object):
             while True:
                 try:
                     data, server = sock.recvfrom(1024)
+                    data = data.decode()
                     lines = []
                     for line in data.split("\n"):
                         lines.extend(line.split("\x04"))

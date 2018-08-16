@@ -1,5 +1,5 @@
+from __future__ import unicode_literals
 import logging
-
 ServiceRegistry     = "com.roonlabs.registry:1"
 ServiceTransport    = "com.roonlabs.transport:2"
 ServiceStatus       = "com.roonlabs.status:1"

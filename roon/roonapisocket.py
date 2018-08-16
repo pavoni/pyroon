@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import websocket
 import threading
 from .constants import *
@@ -24,14 +25,17 @@ class RoonApiWebSocket(threading.Thread):
     def run(self):
         while not self._exit:
             try:
-               self._socket.run_forever() # within try-except to handle connection loss
+               self._socket.run_forever(ping_interval=0, ping_timeout=5) # within try-except to handle connection loss
             except Exception as exc:
                 LOGGER.exception(str(exc)) # TODO: should we also add the subscriptions again ?
 
     def stop(self):
         self._exit = True
+        subscriptions = []
         for key, value in self._subscriptions.items():
-            self.unsubscribe(value["service"], value["endpoint"])
+            subscriptions.append( (value["service"], value["endpoint"]) )
+        for service, endpoint in subscriptions:
+            self.unsubscribe(service, subscriptions)
         self._socket.close()
 
     def __init__(self, host):
@@ -47,7 +51,7 @@ class RoonApiWebSocket(threading.Thread):
         '''subscribe to events'''
         subkey = self._subkey
         self._subkey += 1
-        data = {"subscription_key": subkey}
+        data = {u"subscription_key": subkey}
         if opt_data and isinstance(opt_data, dict):
             data.update(opt_data)
         request_id = self.send(service + "/subscribe_" + endpoint, data)
@@ -74,12 +78,17 @@ class RoonApiWebSocket(threading.Thread):
         if not message:
             message = ws # compatability fix because of change in websocket-client v0.49
         try:
+            message = message.decode('utf-8')
             lines = message.split("\n")
-            header = lines[0].decode("utf-8")
-            content_type = lines[1].split("Content-Type: ")[1].decode("utf-8")
-            request_id = int(lines[2].split("Request-Id: ")[1])
-            content_length = int(lines[3].split("Content-Length: ")[1])
-            body = "".join(lines[5:]).decode("utf-8")
+            header = lines[0]
+            if "Content-Type:" in message:
+                content_type = lines[1].split("Content-Type: ")[1]
+                request_id = int(lines[2].split("Request-Id: ")[1])
+                content_length = int(lines[3].split("Content-Length: ")[1])
+                body = "".join(lines[5:])
+            else:
+                request_id = int(lines[1].split("Request-Id: ")[1])
+                body = header
             if body and "{" in body:
                 body = json.loads(body)
             if request_id in self._subscriptions:
@@ -87,7 +96,8 @@ class RoonApiWebSocket(threading.Thread):
             else:
                 self._results[request_id] = body
         except Exception as exc:
-            LOGGER.warning("Received malformed message (%s)\n%s" %(str(exc, message)))
+            LOGGER.exception("Error while parsing message")
+            LOGGER.debug(message)
 
     def on_error(self, ws, error=None):
         if not error:
@@ -107,9 +117,13 @@ class RoonApiWebSocket(threading.Thread):
         self._requestid += 1
         self._results[request_id] = None
         if body == None:
-            msg = "MOO/1 REQUEST %s\nRequest-Id: %s\n\n" % (command, request_id)
+            msg = u"MOO/1 REQUEST %s\nRequest-Id: %s\n\n" % (command, request_id)
         else:
             body = json.dumps(body)
-            msg = "MOO/1 REQUEST %s\nRequest-Id: %s\nContent-Length: %s\nContent-Type: %s\n\n%s" %(command, request_id, len(body), content_type, body)
+            msg = u"MOO/1 REQUEST %s\nRequest-Id: %s\nContent-Length: %s\nContent-Type: %s\n\n%s" %(command, request_id, len(body), content_type, body)
+        try:
+            msg = bytes(msg) # py2
+        except TypeError:
+            msg = bytes(msg, 'utf-8') # py3
         self._socket.send(msg, 0x2)
         return request_id

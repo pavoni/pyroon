@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import time
 from .constants import *
 from .roonapisocket import RoonApiWebSocket
@@ -13,6 +14,7 @@ class RoonApi():
     _zones = {}
     _outputs = {}
     _state_callbacks = []
+    init_complete = False
 
     @property
     def token(self):
@@ -74,8 +76,7 @@ class RoonApi():
                 height: the height of the image (required if scale is set)
             returns: string with the full url to the image
         '''
-        return "http://%s:%s/api/image/image_key?scale=%s&width=%s&height=%s" %(self._host, self._port, scale, width, height)
-
+        return "http://%s:%s/api/image/%s?scale=%s&width=%s&height=%s" %(self._host, self._port, image_key, scale, width, height)
 
     def playback_control(self, zone_or_output_id, control="play"):
         '''
@@ -131,14 +132,15 @@ class RoonApi():
 
     def change_volume(self, output_id, value, method="absolute"):
         '''
-            Change the volume of an output. Grouped zones can have differently behaving
-            volume systems (dB, min/max, steps, etc..), so you have to change the volume
-            different for each of those outputs.
+            Change the volume of an output. For convenience you can always just give te new volume level as percentage
             params:
                 output_id: the id of the output
-                value: The new volume value, or the increment value or step
+                value: The new volume value, or the increment value or step (as percentage)
                 method: How to interpret the volume ('absolute'|'relative'|'relative_step')
         '''
+        if method == "absolute":
+            if self._outputs[output_id]["volume"]["type"] == "db":
+                value = int((float(value) / 100) * 80) - 80
         data = {  "output_id": output_id, "how": method, "value": value }
         return self._request(ServiceTransport + "/change_volume", data)
 
@@ -187,11 +189,11 @@ class RoonApi():
         '''
         if not event_filter:
             event_filter = []
-        elif isinstance(event_filter, (str, unicode)):
+        elif not isinstance(event_filter, list):
             event_filter = [event_filter]
         if not id_filter:
             id_filter = []
-        elif isinstance(id_filter, (str, unicode)):
+        elif not isinstance(id_filter, list):
             id_filter = [id_filter]
         self._state_callbacks.append( (callback, event_filter, id_filter) )
 
@@ -323,23 +325,38 @@ class RoonApi():
     ############# private methods ##################
     
 
-    def __init__(self, appinfo, token=None, host=None, port=9100):
+    def __init__(self, appinfo, token=None, host=None, port=9100, blocking_init=True):
         '''
             Set up the connection with Roon
             appinfo: a dict of the required information about the app that should be connected to the api
             token: used for presistant storage of the auth token, will be set to token attribute if retrieved. You should handle saving of the key yourself
             host: optional the ip or hostname of the Roon server, will be auto discovered if ommitted
             port: optional the http port of the Roon websockets api. Should be default of 9100
+            blocking_init: By default the init will halt untill the socket is connected and the app is authenticated, 
+                           if you set bool to False te init will continue but you will only receive data once the connection is fully initialized. 
+                           The latter is preferred if you're (only) using the callbacks
         '''
-        while not host and not self._exit:
-            LOGGER.info("Discovering Roon server in the network")
-            host, port = RoonDiscovery().first()
-            if not host:
-                time.sleep(10)
-            else:
-                LOGGER.info("Discovered Roon server in the network at IP %s" % host)
         if not isinstance(appinfo, dict):
-            raise("appinfo should be provided as dict")
+            raise("appinfo is not in a valid format!") # TODO: add some more sanity checks
+        if blocking_init:
+            self._do_init()
+        else:
+            try:
+                import thread as _thread #py2
+            except ImportError:
+                import _thread # py3
+            _thread.start_new_thread(self._do_init, (appinfo, token, host, port))
+        
+
+    def _do_init(self, appinfo, token, host, port):
+        ''' initialization of the api including registering'''
+        LOGGER.info("Discovering Roon server in the network")
+        while not host and not self._exit:
+            host, port = RoonDiscovery().first()
+            if not host and not self._exit:
+                time.sleep(2)
+            else:
+                LOGGER.info("Discovered Roon server in the network at IP %s:%s" % (host, port))
         self._host = host
         self._port = port
         ws_address = "ws://%s:%s/api" %(host, port)
@@ -360,12 +377,15 @@ class RoonApi():
         # authenticate
         self._token = token
         self._register_app(appinfo)
+        # once we're passed the registration we can set the init flag
+        self.init_complete = True
         # fill zones and outputs dicts one time so the data is available right away
         self._zones = self._get_zones()
         self._outputs = self._get_outputs()
         # subscribe to state change events
         self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
         self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
+        
 
     def __exit__(self, type, value, tb):
         self.stop()
@@ -397,21 +417,19 @@ class RoonApi():
                         for output in zone["outputs"]:
                             filter_keys.append(output["output_id"])
                             filter_keys.append(output["display_name"])
-                    if state_key == "zones_seek_changed":
-                        event = "zones_seek_changed"
-                    else:
-                        event = "zones_changed"
+                event = "zones_seek_changed" if state_key == "zones_seek_changed" else "zones_changed"
                 events.append((event, changed_ids, filter_keys))
             elif state_key in ["outputs_changed", "outputs_added", "outputs"]:
                 for output in state_values:
                     if output["output_id"] in self._outputs:
-                        self._outputs[output["output_id"]].update(zone)
+                        self._outputs[output["output_id"]].update(output)
                     else:
                         self._outputs[output["output_id"]] = output
-                    changed_ids.append(zone["zone_id"])
-                    filter_keys.append(zone["display_name"])
-                    event = "outputs_changed"
-                    events.append((event, changed_ids, filter_keys))
+                    changed_ids.append(output["output_id"])
+                    filter_keys.append(output["display_name"])
+                    filter_keys.append(output["zone_id"])
+                event = "outputs_changed"
+                events.append((event, changed_ids, filter_keys))
             elif state_key == "zones_removed":
                 for item in state_values:
                     del self._zones[item]
@@ -430,7 +448,10 @@ class RoonApi():
                     continue
                 if id_filter and set(id_filter).isdisjoint(filter_keys):
                     continue
-                callback(event, changed_ids)
+                try:
+                    callback(event, changed_ids)
+                except Exception:
+                    LOGGER.exception("Error while executing callback!")
 
     def _get_outputs(self):
         outputs = {}
@@ -450,6 +471,7 @@ class RoonApi():
 
     def _register_app(self, appinfo):
         ''' register this app with roon and wait for the authentication token'''
+        # warning: at first launch this will block untill the user approves the app within Roon.
         if not appinfo or not isinstance(appinfo, dict):
             raise("appinfo missing or in incorrect format!")
         if not appinfo.get("required_services"):
@@ -478,6 +500,9 @@ class RoonApi():
 
     def _request(self, command, data=None):
         ''' send command and wait for result '''
+        if not self.init_complete:
+            LOGGER.warning("socket is not yet ready")
+            return None
         request_id = self._roonsocket.send(command, data)
         result = None
         retries = 20
