@@ -13,6 +13,10 @@ class RoonApi():
     _exit = False
     _zones = {}
     _outputs = {}
+    _source_controls_request_id = None
+    _volume_controls_request_id = None
+    _source_controls = {}
+    _volume_controls = {}
     _state_callbacks = []
     init_complete = False
 
@@ -175,6 +179,102 @@ class RoonApi():
         loop = "loop" if repeat else "disabled"
         data = {  "zone_or_output_id": zone_or_output_id, "loop": loop }
         return self._request(ServiceTransport + "/change_settings", data)
+    
+    def transfer_zone(self, from_zone_or_output_id, to_zone_or_output_id):
+        '''
+            Transfer the current queue from one zone to another
+            params:
+                from_zone_or_output_id - The source zone or output
+                to_zone_or_output_id - The destination zone or output
+        '''
+        data = { "from_zone_or_output_id": from_zone_or_output_id, 
+                    "to_zone_or_output_id": to_zone_or_output_id }
+        return self._request(ServiceTransport + "/transfer_zone", data)
+
+    def group_outputs(self, output_ids):
+        '''
+            Create a group of synchronized audio outputs
+            params:
+                output_ids - The outputs to group. The first output's zone's queue is preserved.
+        '''
+        data = { "output_ids": output_ids }
+        return self._request(ServiceTransport + "/group_outputs", data)
+
+    def ungroup_outputs(self, output_ids):
+        '''
+            Ungroup outputs previous grouped
+            params:
+                output_ids - The outputs to ungroup.
+        '''
+        data = { "output_ids": output_ids }
+        return self._request(ServiceTransport + "/ungroup_outputs", data)
+
+    def register_source_control(self, control_key, display_name, callback, initial_state="selected", supports_standby=True):
+        ''' register a new source control on the api'''
+        if control_key in self._source_controls:
+            LOGGER.error("source_control %s is already registered!" % control_key)
+            return
+        if not self._source_controls_request_id:
+            LOGGER.error("Not yet registered, can not register source control yet")
+            return False
+        control_data = {
+                    "display_name": display_name,
+                    "supports_standby": supports_standby,
+                    "status": initial_state,
+                    "control_key": control_key
+                    }
+        self._source_controls[control_key] = (callback, control_data)
+        data = {"controls_added":[ control_data ]}
+        self._roonsocket.send_continue(self._source_controls_request_id, data)
+
+    def update_source_control(self, control_key, new_state):
+        ''' register a new source control on the api'''
+        if control_key not in self._source_controls:
+            LOGGER.error("source_control %s is not registered!" % control_key)
+            return
+        if not self._source_controls_request_id:
+            LOGGER.error("Not yet registered, can not update source control yet")
+            return False
+        self._source_controls[control_key][1]["status"] = new_state
+        data = {"controls_changed": [ self._source_controls[control_key][1] ] }
+        self._roonsocket.send_continue(self._source_controls_request_id, data)
+
+    def register_volume_control(self, control_key, display_name, callback, initial_volume=0, volume_type="number", volume_step=2, volume_min=0, volume_max=100, is_muted=False):
+        ''' register a new source control on the api'''
+        if control_key in self._volume_controls:
+            LOGGER.error("source_control %s is already registered!" % control_key)
+            return
+        if not self._volume_controls_request_id:
+            LOGGER.error("Not yet registered, can not register source control yet")
+            return False
+        control_data = {
+                    "display_name": display_name,
+                    "volume_type": volume_type,
+                    "volume_min": volume_min,
+                    "volume_max": volume_max,
+                    "volume_value": initial_volume,
+                    "volume_step": volume_step,
+                    "is_muted": is_muted,
+                    "control_key": control_key
+                    }
+        self._volume_controls[control_key] = (callback, control_data)
+        data = {"controls_added":[ control_data ]}
+        self._roonsocket.send_continue(self._volume_controls_request_id, data)
+
+    def update_volume_control(self, control_key, volume=None, mute=None):
+        ''' update a volume control, report its state to Roon '''
+        if control_key not in self._volume_controls:
+            LOGGER.error("volume_control %s is not registered!" % control_key)
+            return
+        if not self._source_controls_request_id:
+            LOGGER.error("Not yet registered, can not update volume control yet")
+            return False
+        if volume != None:
+            self._volume_controls[control_key][1]["volume_value"] = volume
+        if mute != None:
+            self._volume_controls[control_key][1]["is_muted"] = mute
+        data = {"controls_changed": [ self._volume_controls[control_key][1] ] }
+        self._roonsocket.send_continue(self._volume_controls_request_id, data)
 
     def register_state_callback(self, callback, event_filter=None, id_filter=None):
         '''
@@ -321,7 +421,6 @@ class RoonApi():
         return self.browse_by_path(["Library", "Search", "Artists"], search_input=search_input)
 
 
-
     ############# private methods ##################
     
 
@@ -339,7 +438,7 @@ class RoonApi():
         if not isinstance(appinfo, dict):
             raise("appinfo is not in a valid format!") # TODO: add some more sanity checks
         if blocking_init:
-            self._do_init()
+            self._do_init(appinfo, token, host, port)
         else:
             try:
                 import thread as _thread #py2
@@ -347,7 +446,6 @@ class RoonApi():
                 import _thread # py3
             _thread.start_new_thread(self._do_init, (appinfo, token, host, port))
         
-
     def _do_init(self, appinfo, token, host, port):
         ''' initialization of the api including registering'''
         LOGGER.info("Discovering Roon server in the network")
@@ -361,6 +459,8 @@ class RoonApi():
         self._port = port
         ws_address = "ws://%s:%s/api" %(host, port)
         self._roonsocket = RoonApiWebSocket(ws_address)
+        self._roonsocket.source_controls_callback = self._on_source_control_request
+        self._roonsocket.volume_controls_callback = self._on_volume_control_request
         self._roonsocket.start()
         # wait for the socket connection to open
         timeout = 0
@@ -386,7 +486,6 @@ class RoonApi():
         self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
         self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
         
-
     def __exit__(self, type, value, tb):
         self.stop()
 
@@ -474,15 +573,11 @@ class RoonApi():
         # warning: at first launch this will block untill the user approves the app within Roon.
         if not appinfo or not isinstance(appinfo, dict):
             raise("appinfo missing or in incorrect format!")
-        if not appinfo.get("required_services"):
-            appinfo["required_services"] = [ServicePing, ServiceTransport, ServiceBrowse]
-        if not appinfo.get("optional_services"):
-            appinfo["optional_services"] = []
-        if not appinfo.get("provided_services"):
-            appinfo["provided_services"] = []
+        appinfo["required_services"] = [ServiceTransport, ServiceBrowse]
+        appinfo["provided_services"] = [ControlVolume, ControlSource]
         if self._token:
             appinfo["token"] = self._token
-        request_id = self._roonsocket.send(ServiceRegistry + "/register", appinfo)
+        request_id = self._roonsocket.send_request(ServiceRegistry + "/register", appinfo)
         if not self._token:
             LOGGER.info("The application should be approved within Roon's settings.")
         else:
@@ -503,19 +598,45 @@ class RoonApi():
         if not self.init_complete:
             LOGGER.warning("socket is not yet ready")
             return None
-        request_id = self._roonsocket.send(command, data)
+        request_id = self._roonsocket.send_request(command, data)
         result = None
-        retries = 20
+        retries = 200
         while retries:
             result = self._roonsocket.results.get(request_id)
             if result:
                 break
             else:
                 retries -= 1
-                time.sleep(0.1)
+                time.sleep(0.01)
         del self._roonsocket.results[request_id]
         return result
 
+    def _on_source_control_request(self, event, request_id, data):
+        ''' got request from roon server for a source control registered on this endpoint'''
+        if event == "subscribe_controls":
+            LOGGER.info("found subscription ID for source controls: %s " % request_id)
+            self._source_controls_request_id = request_id
+            self._roonsocket.send_continue(request_id, {"controls_added": []})
+        elif data and data.get("control_key"):
+            control_key = data["control_key"]
+            self._source_controls[control_key][0](control_key, event)
 
-
-    
+    def _on_volume_control_request(self, event, request_id, data):
+        ''' got request from roon server for a volume control registered on this endpoint'''
+        if event == "subscribe_controls":
+            LOGGER.info("found subscription ID for volume controls: %s " % request_id)
+            self._volume_controls_request_id = request_id
+            self._roonsocket.send_continue(request_id, {"controls_added": []})
+        elif data and data.get("control_key"):
+            control_key = data["control_key"]
+            if event == "set_volume" and data["mode"] == "absolute":
+                value = data["value"]
+            elif event == "set_volume" and data["mode"] == "relative":
+                value = self._volume_controls[control_key][0]["volume_value"] + data["value"]
+            elif event == "set_volume" and data["mode"] == "relative_step":
+                value = self._volume_controls[control_key][0]["volume_value"] + (data["value"] * data["volume_step"])
+            elif event == "set_mute":
+                value = data["mode"] == "on"
+            else:
+                return
+            self._volume_controls[control_key][0](control_key, event, value)

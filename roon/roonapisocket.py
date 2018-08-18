@@ -12,22 +12,21 @@ except ImportError:
 class RoonApiWebSocket(threading.Thread):
     _socket = None
     _results = {}
-    _subscriptions = {}
-    _requestid = 0
+    _requestid = 10 # initial request_id of 10 to prevent confusion with the requests that are sent by the server at initialization
     _subkey = 0
     _exit = False
+    _subscriptions = {}
     connected = False
+    source_controls_callback = None
+    volume_controls_callback = None
 
     @property
     def results(self):
         return self._results
 
     def run(self):
-        while not self._exit:
-            try:
-               self._socket.run_forever(ping_interval=0, ping_timeout=5) # within try-except to handle connection loss
-            except Exception as exc:
-                LOGGER.exception(str(exc)) # TODO: should we also add the subscriptions again ?
+        self._socket.run_forever(ping_interval=10, ping_timeout=5)
+        self.connected = False # TODO: handle unexpected connection loss !!
 
     def stop(self):
         self._exit = True
@@ -54,7 +53,7 @@ class RoonApiWebSocket(threading.Thread):
         data = {u"subscription_key": subkey}
         if opt_data and isinstance(opt_data, dict):
             data.update(opt_data)
-        request_id = self.send(service + "/subscribe_" + endpoint, data)
+        request_id = self.send_request(service + "/subscribe_" + endpoint, data)
         self._subscriptions[request_id] = {
             "service": service,
             "endpoint": endpoint,
@@ -70,9 +69,8 @@ class RoonApiWebSocket(threading.Thread):
             if value["service"] == service and value["endpoint"] == endpoint:
                 matches.append((key, value["subkey"]))
         for item in matches:
-            self.send(service + "/unsubscribe_" + endpoint, {"subscription_key": item[1]})
+            self.send_request(service + "/unsubscribe_" + endpoint, {"subscription_key": item[1]})
             del self._subscriptions[item[0]]
-
 
     def on_message(self, ws, message=None):
         if not message:
@@ -91,9 +89,22 @@ class RoonApiWebSocket(threading.Thread):
                 body = header
             if body and "{" in body:
                 body = json.loads(body)
-            if request_id in self._subscriptions:
+            # handle message
+            if ControlSource in header:
+                # incoming message for source_control endpoint
+                event = header.split("/")[-1]
+                if self.source_controls_callback:
+                    self.source_controls_callback(event, request_id, body)
+            elif ControlVolume in header:
+                # incoming message for volume_control endpoint
+                event = header.split("/")[-1]
+                if self.volume_controls_callback:
+                    self.volume_controls_callback(event, request_id, body)
+            elif request_id in self._subscriptions:
+                # this is callback for one of our subscriptions
                 self._subscriptions[request_id]["callback"](body)
             else:
+                # this is just a result for once of our requests
                 self._results[request_id] = body
         except Exception as exc:
             LOGGER.exception("Error while parsing message")
@@ -112,7 +123,16 @@ class RoonApiWebSocket(threading.Thread):
         LOGGER.debug('Opened Websocket connection to the server...')
         self.connected = True
 
-    def send(self, command, body=None, content_type="application/json"):
+    def send_continue(self, request_id, body):
+        body = json.dumps(body)
+        msg = u"MOO/1 CONTINUE Changed\nRequest-Id: %s\nContent-Length: %s\nContent-Type: application/json\n\n%s" %(request_id, len(body), body)
+        try:
+            msg = bytes(msg) # py2
+        except TypeError:
+            msg = bytes(msg, 'utf-8') # py3
+        self._socket.send(msg, 0x2)
+
+    def send_request(self, command, body=None, content_type="application/json", header_type="REQUEST"):
         request_id = self._requestid
         self._requestid += 1
         self._results[request_id] = None
