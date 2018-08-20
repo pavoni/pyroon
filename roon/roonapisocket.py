@@ -19,14 +19,16 @@ class RoonApiWebSocket(threading.Thread):
     connected = False
     source_controls_callback = None
     volume_controls_callback = None
+    connection_lost_callback = None
 
     @property
     def results(self):
         return self._results
 
     def run(self):
-        self._socket.run_forever(ping_interval=10, ping_timeout=5)
-        self.connected = False # TODO: handle unexpected connection loss !!
+        self._socket.run_forever(ping_interval=30, ping_timeout=5)
+        LOGGER.info("socket connection terminated")
+        self.connected = False
 
     def stop(self):
         self._exit = True
@@ -104,7 +106,7 @@ class RoonApiWebSocket(threading.Thread):
                 # this is callback for one of our subscriptions
                 self._subscriptions[request_id]["callback"](body)
             else:
-                # this is just a result for once of our requests
+                # this is just a result for one of our requests
                 self._results[request_id] = body
         except Exception as exc:
             LOGGER.exception("Error while parsing message")
@@ -114,6 +116,10 @@ class RoonApiWebSocket(threading.Thread):
         if not error:
             error = ws # compatability fix because of change in websocket-client v0.49
         LOGGER.error(error)
+        if "Connection is already closed" in error and not self._exit:
+            self.connected = False
+            if self.connection_lost_callback:
+                self.connection_lost_callback()
 
     def on_close(self, ws=None):
         LOGGER.info("session closed")
@@ -124,6 +130,9 @@ class RoonApiWebSocket(threading.Thread):
         self.connected = True
 
     def send_continue(self, request_id, body):
+        if not self.connected:
+            LOGGER.error("Connection is not (yet) ready!")
+            return False
         body = json.dumps(body)
         msg = u"MOO/1 CONTINUE Changed\nRequest-Id: %s\nContent-Length: %s\nContent-Type: application/json\n\n%s" %(request_id, len(body), body)
         try:
@@ -132,7 +141,26 @@ class RoonApiWebSocket(threading.Thread):
             msg = bytes(msg, 'utf-8') # py3
         self._socket.send(msg, 0x2)
 
+    def send_complete(self, request_id, name, body=""):
+        if not self.connected:
+            LOGGER.error("Connection is not (yet) ready!")
+            return False
+        msg = u"MOO/1 COMPLETE %s\nRequest-Id: %s" %(name, request_id)
+        if body:
+            body = json.dumps(body)
+            msg += u"\nContent-Length: %s\nContent-Type: application/json\n\n%s" %(len(body), body)
+        else:
+            msg += "\n\n"
+        try:
+            msg = bytes(msg) # py2
+        except TypeError:
+            msg = bytes(msg, 'utf-8') # py3
+        self._socket.send(msg, 0x2)
+
     def send_request(self, command, body=None, content_type="application/json", header_type="REQUEST"):
+        if not self.connected:
+            LOGGER.error("Connection is not (yet) ready!")
+            return False
         request_id = self._requestid
         self._requestid += 1
         self._results[request_id] = None

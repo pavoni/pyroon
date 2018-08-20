@@ -435,32 +435,37 @@ class RoonApi():
                            if you set bool to False te init will continue but you will only receive data once the connection is fully initialized. 
                            The latter is preferred if you're (only) using the callbacks
         '''
+        self._appinfo = appinfo
+        self._host = host
+        self._port = port
+        self._token = token
         if not isinstance(appinfo, dict):
             raise("appinfo is not in a valid format!") # TODO: add some more sanity checks
         if blocking_init:
-            self._do_init(appinfo, token, host, port)
+            self._do_init()
         else:
             try:
                 import thread as _thread #py2
             except ImportError:
                 import _thread # py3
-            _thread.start_new_thread(self._do_init, (appinfo, token, host, port))
+            _thread.start_new_thread(self._do_init, ())
         
-    def _do_init(self, appinfo, token, host, port):
+    def _do_init(self):
         ''' initialization of the api including registering'''
         LOGGER.info("Discovering Roon server in the network")
-        while not host and not self._exit:
+        while not self._host and not self._exit:
             host, port = RoonDiscovery().first()
             if not host and not self._exit:
                 time.sleep(2)
             else:
                 LOGGER.info("Discovered Roon server in the network at IP %s:%s" % (host, port))
-        self._host = host
-        self._port = port
+                self._host = host
+                self._port = port
         ws_address = "ws://%s:%s/api" %(host, port)
         self._roonsocket = RoonApiWebSocket(ws_address)
         self._roonsocket.source_controls_callback = self._on_source_control_request
         self._roonsocket.volume_controls_callback = self._on_volume_control_request
+        self._roonsocket.connection_lost_callback = self._on_connection_lost
         self._roonsocket.start()
         # wait for the socket connection to open
         timeout = 0
@@ -475,8 +480,7 @@ class RoonApi():
             time.sleep(0.5)
             timeout += 1
         # authenticate
-        self._token = token
-        self._register_app(appinfo)
+        self._register_app()
         # once we're passed the registration we can set the init flag
         self.init_complete = True
         # fill zones and outputs dicts one time so the data is available right away
@@ -496,6 +500,23 @@ class RoonApi():
         self._exit = True
         if self._roonsocket:
             self._roonsocket.stop()
+
+    def _on_connection_lost(self):
+        LOGGER.error("Connection with roon websockets lost! Will try to reconnect...")
+        self._source_controls_request_id = None
+        self._volume_controls_request_id = None
+        self._do_init()
+        # re-register source and volume controls
+        while not self._exit and (not self._source_controls_request_id or not self._volume_controls_request_id):
+            time.sleep(0.5)
+        self._source_controls[control_key] = (callback, control_data)
+        for control_key, callback, control_data in self._source_controls.items():
+            data = {"controls_added":[ control_data ]}
+            self._roonsocket.send_continue(self._source_controls_request_id, data)
+        for control_key, callback, control_data in self._volume_controls.items():
+            data = {"controls_added":[ control_data ]}
+            self._roonsocket.send_continue(self._volume_controls_request_id, data)
+
 
     def _on_state_change(self, msg):
         ''' process messages we receive from the roon websocket into a more usable format'''
@@ -568,9 +589,10 @@ class RoonApi():
                 zones[zone["zone_id"]] = zone
         return zones
 
-    def _register_app(self, appinfo):
+    def _register_app(self):
         ''' register this app with roon and wait for the authentication token'''
         # warning: at first launch this will block untill the user approves the app within Roon.
+        appinfo = self._appinfo
         if not appinfo or not isinstance(appinfo, dict):
             raise("appinfo missing or in incorrect format!")
         appinfo["required_services"] = [ServiceTransport, ServiceBrowse]
@@ -614,17 +636,24 @@ class RoonApi():
     def _on_source_control_request(self, event, request_id, data):
         ''' got request from roon server for a source control registered on this endpoint'''
         if event == "subscribe_controls":
-            LOGGER.info("found subscription ID for source controls: %s " % request_id)
+            LOGGER.debug("found subscription ID for source controls: %s " % request_id)
             self._source_controls_request_id = request_id
             self._roonsocket.send_continue(request_id, {"controls_added": []})
         elif data and data.get("control_key"):
             control_key = data["control_key"]
-            self._source_controls[control_key][0](control_key, event)
+            try:
+                # launch callback
+                self._roonsocket.send_complete(request_id, "Success")
+                self._source_controls[control_key][0](control_key, event)
+                #self._roonsocket.send_complete(request_id, "Success")
+            except Exception:
+                LOGGER.exception("Error in source_control callback")
+                self._roonsocket.send_complete(request_id, "Error")
 
     def _on_volume_control_request(self, event, request_id, data):
         ''' got request from roon server for a volume control registered on this endpoint'''
         if event == "subscribe_controls":
-            LOGGER.info("found subscription ID for volume controls: %s " % request_id)
+            LOGGER.debug("found subscription ID for volume controls: %s " % request_id)
             self._volume_controls_request_id = request_id
             self._roonsocket.send_continue(request_id, {"controls_added": []})
         elif data and data.get("control_key"):
@@ -639,4 +668,11 @@ class RoonApi():
                 value = data["mode"] == "on"
             else:
                 return
-            self._volume_controls[control_key][0](control_key, event, value)
+            try:
+                self._roonsocket.send_complete(request_id, "Success")
+                self._volume_controls[control_key][0](control_key, event, value)
+            except Exception:
+                LOGGER.exception("Error in volume_control callback")
+                self._roonsocket.send_complete(request_id, "Error")
+
+
