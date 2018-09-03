@@ -7,9 +7,10 @@ from .discovery  import RoonDiscovery
 
 class RoonApi():
     _roonsocket = None
+    _roondiscovery = None
+    _host = None
+    _port = None
     _token = None
-    _host = ""
-    _port = 0
     _exit = False
     _zones = {}
     _outputs = {}
@@ -18,7 +19,7 @@ class RoonApi():
     _source_controls = {}
     _volume_controls = {}
     _state_callbacks = []
-    init_complete = False
+    ready = False
 
     @property
     def token(self):
@@ -214,9 +215,6 @@ class RoonApi():
         if control_key in self._source_controls:
             LOGGER.error("source_control %s is already registered!" % control_key)
             return
-        if not self._source_controls_request_id:
-            LOGGER.error("Not yet registered, can not register source control yet")
-            return False
         control_data = {
                     "display_name": display_name,
                     "supports_standby": supports_standby,
@@ -224,29 +222,27 @@ class RoonApi():
                     "control_key": control_key
                     }
         self._source_controls[control_key] = (callback, control_data)
-        data = {"controls_added":[ control_data ]}
-        self._roonsocket.send_continue(self._source_controls_request_id, data)
+        if self._source_controls_request_id:
+            data = {"controls_added":[ control_data ]}
+            self._roonsocket.send_continue(self._source_controls_request_id, data)
 
     def update_source_control(self, control_key, new_state):
-        ''' register a new source control on the api'''
+        ''' update an existing source control on the api'''
         if control_key not in self._source_controls:
-            LOGGER.error("source_control %s is not registered!" % control_key)
+            LOGGER.warning("source_control %s is not (yet) registered!" % control_key)
             return
         if not self._source_controls_request_id:
-            LOGGER.error("Not yet registered, can not update source control yet")
+            LOGGER.warning("Not yet registered, can not update source control")
             return False
         self._source_controls[control_key][1]["status"] = new_state
         data = {"controls_changed": [ self._source_controls[control_key][1] ] }
         self._roonsocket.send_continue(self._source_controls_request_id, data)
 
     def register_volume_control(self, control_key, display_name, callback, initial_volume=0, volume_type="number", volume_step=2, volume_min=0, volume_max=100, is_muted=False):
-        ''' register a new source control on the api'''
+        ''' register a new volume control on the api'''
         if control_key in self._volume_controls:
             LOGGER.error("source_control %s is already registered!" % control_key)
             return
-        if not self._volume_controls_request_id:
-            LOGGER.error("Not yet registered, can not register source control yet")
-            return False
         control_data = {
                     "display_name": display_name,
                     "volume_type": volume_type,
@@ -258,16 +254,17 @@ class RoonApi():
                     "control_key": control_key
                     }
         self._volume_controls[control_key] = (callback, control_data)
-        data = {"controls_added":[ control_data ]}
-        self._roonsocket.send_continue(self._volume_controls_request_id, data)
+        if self._volume_controls_request_id:
+            data = {"controls_added":[ control_data ]}
+            self._roonsocket.send_continue(self._volume_controls_request_id, data)
 
     def update_volume_control(self, control_key, volume=None, mute=None):
-        ''' update a volume control, report its state to Roon '''
+        ''' update an existing volume control, report its state to Roon '''
         if control_key not in self._volume_controls:
-            LOGGER.error("volume_control %s is not registered!" % control_key)
+            LOGGER.warning("volume_control %s is not (yet) registered!" % control_key)
             return
-        if not self._source_controls_request_id:
-            LOGGER.error("Not yet registered, can not update volume control yet")
+        if not self._volume_controls_request_id:
+            LOGGER.warning("Not yet registered, can not update volume control")
             return False
         if volume != None:
             self._volume_controls[control_key][1]["volume_value"] = volume
@@ -432,64 +429,24 @@ class RoonApi():
             host: optional the ip or hostname of the Roon server, will be auto discovered if ommitted
             port: optional the http port of the Roon websockets api. Should be default of 9100
             blocking_init: By default the init will halt untill the socket is connected and the app is authenticated, 
-                           if you set bool to False te init will continue but you will only receive data once the connection is fully initialized. 
+                           if you set bool to False the init will continue but you will only receive data once the connection is fully initialized. 
                            The latter is preferred if you're (only) using the callbacks
         '''
         self._appinfo = appinfo
-        self._host = host
-        self._port = port
         self._token = token
-        if not isinstance(appinfo, dict):
-            raise("appinfo is not in a valid format!") # TODO: add some more sanity checks
-        if blocking_init:
-            self._do_init()
+        if not appinfo or not isinstance(appinfo, dict):
+            raise("appinfo missing or in incorrect format!")
+
+        if host and port:
+            self._server_discovered(host, port)
         else:
-            try:
-                import thread as _thread #py2
-            except ImportError:
-                import _thread # py3
-            _thread.start_new_thread(self._do_init, ())
-        
-    def _do_init(self):
-        ''' initialization of the api including registering'''
-        LOGGER.info("Discovering Roon server in the network")
-        while not self._host and not self._exit:
-            host, port = RoonDiscovery().first()
-            if not host and not self._exit:
-                time.sleep(2)
-            else:
-                LOGGER.info("Discovered Roon server in the network at IP %s:%s" % (host, port))
-                self._host = host
-                self._port = port
-        ws_address = "ws://%s:%s/api" %(host, port)
-        self._roonsocket = RoonApiWebSocket(ws_address)
-        self._roonsocket.source_controls_callback = self._on_source_control_request
-        self._roonsocket.volume_controls_callback = self._on_volume_control_request
-        self._roonsocket.connection_lost_callback = self._on_connection_lost
-        self._roonsocket.start()
-        # wait for the socket connection to open
-        timeout = 0
-        while not self._exit:
-            if self._roonsocket.connected:
-                break
-            elif timeout == 100:
-                LOGGER.error("Failed to connect to socket! Will keep retrying...")
-                timeout = 0
-            elif self._exit:
-                return
-            time.sleep(0.5)
-            timeout += 1
-        # authenticate
-        self._register_app()
-        # once we're passed the registration we can set the init flag
-        self.init_complete = True
-        # fill zones and outputs dicts one time so the data is available right away
-        self._zones = self._get_zones()
-        self._outputs = self._get_outputs()
-        # subscribe to state change events
-        self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
-        self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
-        
+            self._roondiscovery = RoonDiscovery(self._server_discovered)
+            self._roondiscovery.start()
+        # block untill we're ready
+        if blocking_init:
+            while not self.ready and not self._exit:
+                time.sleep(1)
+                
     def __exit__(self, type, value, tb):
         self.stop()
 
@@ -498,25 +455,60 @@ class RoonApi():
 
     def stop(self):
         self._exit = True
+        if self._roondiscovery:
+            self._roondiscovery.stop()
         if self._roonsocket:
             self._roonsocket.stop()
 
-    def _on_connection_lost(self):
-        LOGGER.error("Connection with roon websockets lost! Will try to reconnect...")
+    def _server_discovered(self, host, port):
+        ''' called when the roon server is auto discovered on the network'''
+        LOGGER.info("Connecting to Roon server %s:%s" % (host, port))
+        ws_address = "ws://%s:%s/api" %(host, port)
+        self._host = host
+        self._port = port
+        self._roonsocket = RoonApiWebSocket(ws_address)
+        self._roonsocket.source_controls_callback = self._on_source_control_request
+        self._roonsocket.volume_controls_callback = self._on_volume_control_request
+        self._roonsocket.connected_callback = self._socket_connected
+        self._roonsocket.registered_calback = self._server_registered
+        self._roonsocket.start()
+
+
+    def _socket_connected(self):
+        ''' the websocket connection is connected successfully'''
+        LOGGER.info("Connection with roon websockets (re)created.")
+        self.ready = False
         self._source_controls_request_id = None
         self._volume_controls_request_id = None
-        self._do_init()
-        # re-register source and volume controls
-        while not self._exit and (not self._source_controls_request_id or not self._volume_controls_request_id):
-            time.sleep(0.5)
-        self._source_controls[control_key] = (callback, control_data)
-        for control_key, callback, control_data in self._source_controls.items():
-            data = {"controls_added":[ control_data ]}
-            self._roonsocket.send_continue(self._source_controls_request_id, data)
-        for control_key, callback, control_data in self._volume_controls.items():
-            data = {"controls_added":[ control_data ]}
-            self._roonsocket.send_continue(self._volume_controls_request_id, data)
+        # authenticate / register
+        # warning: at first launch the user has to approve the app in the Roon settings.
+        appinfo = self._appinfo.copy()
+        appinfo["required_services"] = [ServiceTransport, ServiceBrowse]
+        appinfo["provided_services"] = [ControlVolume, ControlSource]
+        if self._token:
+            appinfo["token"] = self._token
+        if not self._token:
+            LOGGER.info("The application should be approved within Roon's settings.")
+        else:
+            LOGGER.info("Registering the app with Roon...")
+        self._roonsocket.send_request(ServiceRegistry + "/register", appinfo)
+        
 
+    def _server_registered(self, reginfo):
+        LOGGER.info("Registered to Roon server %s" % reginfo["display_name"])
+        LOGGER.debug(reginfo)
+        self._token = reginfo["token"]
+        # set flag that we're fully initialized (used for blocking init)
+        self.ready = True
+        # fill zones and outputs dicts one time so the data is available right away
+        if not self._zones:
+            self._zones = self._get_zones()
+        if not self._outputs:
+            self._outputs = self._get_outputs()
+        # subscribe to state change events
+        self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
+        self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
+        
 
     def _on_state_change(self, msg):
         ''' process messages we receive from the roon websocket into a more usable format'''
@@ -589,63 +581,45 @@ class RoonApi():
                 zones[zone["zone_id"]] = zone
         return zones
 
-    def _register_app(self):
-        ''' register this app with roon and wait for the authentication token'''
-        # warning: at first launch this will block untill the user approves the app within Roon.
-        appinfo = self._appinfo
-        if not appinfo or not isinstance(appinfo, dict):
-            raise("appinfo missing or in incorrect format!")
-        appinfo["required_services"] = [ServiceTransport, ServiceBrowse]
-        appinfo["provided_services"] = [ControlVolume, ControlSource]
-        if self._token:
-            appinfo["token"] = self._token
-        request_id = self._roonsocket.send_request(ServiceRegistry + "/register", appinfo)
-        if not self._token:
-            LOGGER.info("The application should be approved within Roon's settings.")
-        else:
-            LOGGER.info("Registering the app with Roon...")
-        while not self._exit:
-            if self._roonsocket.results.get(request_id):
-                _token = self._roonsocket.results[request_id].get("token")
-                if _token:
-                    LOGGER.info("Registered to Roon server %s" % self._roonsocket.results[request_id]["display_name"])
-                    LOGGER.debug(self._roonsocket.results[request_id])
-                    self._token = _token
-                    del self._roonsocket.results[request_id]
-                    break
-            time.sleep(1)
-
     def _request(self, command, data=None):
         ''' send command and wait for result '''
-        if not self.init_complete:
+        if not self.ready or not self._roonsocket:
             LOGGER.warning("socket is not yet ready")
-            return None
+            if not self._roonsocket:
+                return None
         request_id = self._roonsocket.send_request(command, data)
         result = None
-        retries = 200
+        retries = 50
         while retries:
             result = self._roonsocket.results.get(request_id)
             if result:
                 break
             else:
                 retries -= 1
-                time.sleep(0.01)
-        del self._roonsocket.results[request_id]
+                time.sleep(0.05)
+        try:
+            del self._roonsocket.results[request_id]
+        except KeyError:
+            pass
         return result
 
     def _on_source_control_request(self, event, request_id, data):
         ''' got request from roon server for a source control registered on this endpoint'''
         if event == "subscribe_controls":
             LOGGER.debug("found subscription ID for source controls: %s " % request_id)
-            self._source_controls_request_id = request_id
             self._roonsocket.send_continue(request_id, {"controls_added": []})
+            # send all source controls already registered (handle connection loss)
+            controls = []
+            for callback, control_data in self._source_controls.values():
+                controls.append(control_data)
+            self._roonsocket.send_continue(request_id, { "controls_added":controls })
+            self._source_controls_request_id = request_id
         elif data and data.get("control_key"):
             control_key = data["control_key"]
             try:
                 # launch callback
                 self._roonsocket.send_complete(request_id, "Success")
                 self._source_controls[control_key][0](control_key, event)
-                #self._roonsocket.send_complete(request_id, "Success")
             except Exception:
                 LOGGER.exception("Error in source_control callback")
                 self._roonsocket.send_complete(request_id, "Error")
@@ -654,8 +628,13 @@ class RoonApi():
         ''' got request from roon server for a volume control registered on this endpoint'''
         if event == "subscribe_controls":
             LOGGER.debug("found subscription ID for volume controls: %s " % request_id)
+            # send all volume controls already registered (handle connection loss)
+            controls = []
+            for callback, control_data in self._volume_controls.values():
+                controls.append(control_data)
+            self._roonsocket.send_continue(request_id, { "controls_added":controls })
+            self._source_controls_request_id = request_id
             self._volume_controls_request_id = request_id
-            self._roonsocket.send_continue(request_id, {"controls_added": []})
         elif data and data.get("control_key"):
             control_key = data["control_key"]
             if event == "set_volume" and data["mode"] == "absolute":

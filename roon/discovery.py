@@ -4,30 +4,37 @@ import socket
 import os.path
 from .constants import *
 
-class RoonDiscovery(object):
+class RoonDiscovery(threading.Thread):
     """Class to discover Roon Servers connected in the network."""
+    _exit = threading.Event()
+    _discovered_callback = None
 
-    def __init__(self):
-        self.entries = []
-        self.last_scan = None
-        self._lock = threading.RLock()
+    def __init__(self, callback):
+        self._discovered_callback = callback
+        threading.Thread.__init__(self)
+        self.daemon = True
 
-    def scan(self, single=False):
-        """Scan the network for servers."""
-        with self._lock:
-            self.update(single)
+    def run(self):
+        ''' run discovery untill server found '''
+        while not self._exit.isSet():
+            host, port = self.first()
+            if host:
+                self._discovered_callback(host, port)
+                self.stop()
 
-    def all(self, single=False):
+    def stop(self):
+        self._exit.set()
+
+    def all(self):
         """Scan and return all found entries as a list. Each server is a tuple of host,port."""
-        self.scan(single)
-        return list(self.entries)
+        self.discover(first_only=False)
 
     def first(self):
         ''' returns first server that is found'''
-        all_servers = self.all(True)
+        all_servers = self._discover(first_only=True)
         return all_servers[0] if all_servers else (None, None)
 
-    def update(self, single=False):
+    def _discover(self, first_only=False):
         """update the server entry with details"""
         this_dir = os.path.dirname(os.path.abspath(__file__))
         sood_file = os.path.join(this_dir, ".soodmsg")
@@ -41,7 +48,7 @@ class RoonDiscovery(object):
         sock.bind(('', 0))
         try:
             sock.sendto(msg, ('<broadcast>', 9003))
-            while True:
+            while not self._exit.isSet():
                 try:
                     data, server = sock.recvfrom(1024)
                     data = data.decode()
@@ -53,7 +60,7 @@ class RoonDiscovery(object):
                         port = int(lines[5].encode("utf-8").strip())
                         host = server[0]
                         entries.append((host, port))
-                        if single:
+                        if first_only:
                             # we're only interested in the first server found
                             break
                 except socket.timeout:
@@ -62,5 +69,5 @@ class RoonDiscovery(object):
                     LOGGER.exception(exc)
         finally:
             sock.close()
-        self.entries = entries
+        return entries
     

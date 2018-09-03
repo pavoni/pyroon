@@ -4,7 +4,7 @@
 
 import setuptools
 
-VERSION = "0.0.9"
+VERSION = "0.0.15"
 NAME = "roonapi"
 INSTALL_REQUIRES = ["websocket-client"]
 

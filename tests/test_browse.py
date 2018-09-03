@@ -22,7 +22,9 @@ appinfo = {
         "email": "my@email.com"
     }
 
-with RoonApi(appinfo, token) as roonapi:
+with RoonApi(appinfo, token, blocking_init=True) as roonapi:
+
+    time.sleep(2)
 
     print(" ###### main menu browse ######")
     # items at first level (mainmenu items)
