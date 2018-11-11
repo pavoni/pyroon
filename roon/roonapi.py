@@ -3,7 +3,7 @@ import time
 from .constants import *
 from .roonapisocket import RoonApiWebSocket
 from .discovery  import RoonDiscovery
-
+import threading
 
 class RoonApi():
     _roonsocket = None
@@ -356,6 +356,8 @@ class RoonApi():
         result = self.browse_load(opts)
         opts["pop_all"] = False
         for search_for in search_paths:
+            if not result or not "items" in result:
+                break
             for item in result["items"]:
                 if item["title"] == search_for or search_input and item.get("input_prompt"):
                     opts["item_key"] = item["item_key"]
@@ -446,6 +448,10 @@ class RoonApi():
         if blocking_init:
             while not self.ready and not self._exit:
                 time.sleep(1)
+        # start socket watcher
+        th = threading.Thread(target=self._socket_watcher)
+        th.daemon = True
+        th.start()
                 
     def __exit__(self, type, value, tb):
         self.stop()
@@ -473,7 +479,6 @@ class RoonApi():
         self._roonsocket.registered_calback = self._server_registered
         self._roonsocket.start()
 
-
     def _socket_connected(self):
         ''' the websocket connection is connected successfully'''
         LOGGER.info("Connection with roon websockets (re)created.")
@@ -492,7 +497,6 @@ class RoonApi():
         else:
             LOGGER.info("Registering the app with Roon...")
         self._roonsocket.send_request(ServiceRegistry + "/register", appinfo)
-        
 
     def _server_registered(self, reginfo):
         LOGGER.info("Registered to Roon server %s" % reginfo["display_name"])
@@ -509,7 +513,6 @@ class RoonApi():
         self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
         self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
         
-
     def _on_state_change(self, msg):
         ''' process messages we receive from the roon websocket into a more usable format'''
         events = []
@@ -584,9 +587,14 @@ class RoonApi():
     def _request(self, command, data=None):
         ''' send command and wait for result '''
         if not self.ready or not self._roonsocket:
-            LOGGER.warning("socket is not yet ready")
-            if not self._roonsocket:
-                return None
+            retries = 20
+            while (not self.ready or not self._roonsocket) and retries:
+                retries -= 1
+                time.sleep(0.2)
+            if not self.ready or not self._roonsocket:
+                LOGGER.warning("socket is not yet ready")
+                if not self._roonsocket:
+                    return None
         request_id = self._roonsocket.send_request(command, data)
         result = None
         retries = 50
@@ -654,4 +662,11 @@ class RoonApi():
                 LOGGER.exception("Error in volume_control callback")
                 self._roonsocket.send_complete(request_id, "Error")
 
-
+    def _socket_watcher(self):
+        ''' monitor the connection state of the socket and reconnect if needed'''
+        while not self._exit:
+            if self._roonsocket and self._roonsocket.failed_state:
+                LOGGER.warning("Socket connection lost! Will try to reconnect")
+                if not self._exit:
+                    self._server_discovered(self._host, self._port)
+            time.sleep(2)

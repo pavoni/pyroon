@@ -27,20 +27,20 @@ class RoonApiWebSocket(threading.Thread):
     connected_callback = None
     registered_calback = None
     connected = False
+    failed_state = False
 
     @property
     def results(self):
         return self._results
 
     def run(self):
-        while True:
-            self._socket.run_forever(ping_interval=10)
-            if not self._exit:
-                LOGGER.warning("Session disconnected! Will try to reconnect in 5 seconds...")
-                time.sleep(5)
-            else:
-                LOGGER.info("socket connection terminated")
-                break
+        self._socket.run_forever(ping_interval=10)
+        if not self._exit:
+            LOGGER.warning("Session unexpectedly disconnected!")
+            self._exit = True
+            self.failed_state = True
+        else:
+            LOGGER.debug("socket connection closed")
 
     def stop(self):
         self._exit = True
