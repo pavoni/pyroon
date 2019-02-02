@@ -24,63 +24,68 @@ appinfo = {
 
 with RoonApi(appinfo, token, blocking_init=True) as roonapi:
 
-    time.sleep(2)
+    output_id = roonapi.output_by_name("boven")["output_id"]
+    roonapi.play_playlist(output_id, "Marcel/Silvia - van alles wat")
+    roonapi.queue_playlist(output_id, "Spotify: Christmas Top 101 - Kerstmuziek")
+    roonapi.queue_playlist(output_id, "Spotify: Christmas Top 101 - Kerstmuziek")
+    roonapi.queue_playlist(output_id, "Spotify: Christmas Top 101 - Kerstmuziek")
+    roonapi.shuffle(output_id)
 
-    print(" ###### main menu browse ######")
-    # items at first level (mainmenu items)
-    result = roonapi.browse_by_path([])
-    print([item["title"] for item in result["items"]])
+    # print(" ###### main menu browse ######")
+    # # items at first level (mainmenu items)
+    # result = roonapi.browse_by_path([])
+    # print([item["title"] for item in result["items"]])
 
-    print(" ###### search artist ######")
-    result = roonapi.browse_by_path(["Library", "Search", "Artists"], search_input="ABBA")
-    print([item["title"] for item in result["items"]])
+    # print(" ###### search artist ######")
+    # result = roonapi.browse_by_path(["Library", "Search", "Artists"], search_input="ABBA")
+    # print([item["title"] for item in result["items"]])
 
-    print(" ###### genres ######")
-    result = roonapi.genres()
-    print([item["title"] for item in result["items"]])
+    # print(" ###### genres ######")
+    # result = roonapi.genres()
+    # print([item["title"] for item in result["items"]])
 
-    print(" ###### subgenres ######")
-    result = roonapi.genres("Pop/Rock")
-    print([item["title"] for item in result["items"]])
+    # print(" ###### subgenres ######")
+    # result = roonapi.genres("Pop/Rock")
+    # print([item["title"] for item in result["items"]])
 
-    print(" ###### zones ######")
-    for zone in roonapi.zones.values():
-        print(zone["display_name"])
+    # print(" ###### zones ######")
+    # for zone in roonapi.zones.values():
+    #     print(zone["display_name"])
 
-    print(" ###### playlists ######")
-    items = roonapi.playlists()
-    print("number of playlists: %s" % items["list"]["count"])
+    # print(" ###### playlists ######")
+    # items = roonapi.playlists()
+    # print("number of playlists: %s" % items["list"]["count"])
 
-    print(" ###### artists ######")
-    items = roonapi.artists()
-    print("number of artists: %s" % items["list"]["count"])
+    # print(" ###### artists ######")
+    # items = roonapi.artists()
+    # print("number of artists: %s" % items["list"]["count"])
 
 
-    print(" ###### albums ######")
-    items = roonapi.albums()
-    print("number of albums: %s" % items["list"]["count"])
+    # print(" ###### albums ######")
+    # items = roonapi.albums()
+    # print("number of albums: %s" % items["list"]["count"])
 
-    print(" ###### tracks ######")
-    items = roonapi.tracks(offset=200)
-    print("number of tracks: %s" % items["list"]["count"])
+    # print(" ###### tracks ######")
+    # items = roonapi.tracks(offset=200)
+    # print("number of tracks: %s" % items["list"]["count"])
 
-    # play playlist by name
-    zone_id = roonapi.zone_by_output_name("milo")["zone_id"]
-    output_id = roonapi.output_by_name("milo")["output_id"]
-    roonapi.play_playlist(zone_id, "Kids")
+    # # play playlist by name
+    # zone_id = roonapi.zone_by_output_name("milo")["zone_id"]
+    # output_id = roonapi.output_by_name("milo")["output_id"]
+    # roonapi.play_playlist(zone_id, "Kids")
 
-    # some playback controls
-    time.sleep(5)
-    roonapi.playback_control(zone_id, "pause")
-    time.sleep(2)
-    roonapi.playback_control(zone_id, "play")
-    time.sleep(2)
-    roonapi.change_volume(output_id, 60)
-    time.sleep(2)
-    roonapi.change_volume(output_id, 40)
+    # # some playback controls
+    # time.sleep(5)
+    # roonapi.playback_control(zone_id, "pause")
+    # time.sleep(2)
+    # roonapi.playback_control(zone_id, "play")
+    # time.sleep(2)
+    # roonapi.change_volume(output_id, 60)
+    # time.sleep(2)
+    # roonapi.change_volume(output_id, 40)
 
-    # play genre
-    roonapi.play_genre(zone_id, "Pop/Rock")
+    # # play genre
+    # roonapi.play_genre(zone_id, "Pop/Rock")
 
 
     # save token

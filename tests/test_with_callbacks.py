@@ -31,6 +31,7 @@ def state_callback(event, changed_items):
 roonapi = RoonApi(appinfo, token)
 roonapi.register_state_callback(state_callback)
 
+time.sleep(5)
 # list all zones
 print(" ###### zones ######")
 for zone in roonapi.zones.values():
@@ -39,7 +40,7 @@ for zone in roonapi.zones.values():
 # list all outputs
 print("###### outputs ########")
 for output in roonapi.outputs.values():
-    print(output["display_name"])
+    print(output)
 
 
 # cleanup handler to properly close the connection and save the token for later use

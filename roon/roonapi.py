@@ -398,16 +398,20 @@ class RoonApi():
         '''return the list of genres in the library'''
         return self.browse_by_path(["Genres", subgenres_for], offset=offset)
 
-    def play_playlist(self, zone_or_output_id, playlist_title, shuffle=True):
+    def play_playlist(self, zone_or_output_id, playlist_title, shuffle=False):
         ''' play playlist by name on the specified zone'''
         play_action = "Shuffle" if shuffle else "Play Now"
         return self.browse_by_path(["Playlists", playlist_title, "Play Playlist", play_action], zone_or_output_id)
+
+    def queue_playlist(self, zone_or_output_id, playlist_title):
+        ''' queue playlist by name on the specified zone'''
+        return self.browse_by_path(["Playlists", playlist_title, "Play Playlist", "Queue"], zone_or_output_id)
 
     def play_radio(self, zone_or_output_id, radio_title):
         ''' play internet radio by name on the specified zone'''
         return self.browse_by_path(["Internet Radio", radio_title, "Play Radio", "Play Now"], zone_or_output_id)
 
-    def play_genre(self, zone_or_output_id, genre_name, subgenre="", shuffle=True):
+    def play_genre(self, zone_or_output_id, genre_name, subgenre="", shuffle=False):
         '''play specified genre on the specified zone'''
         action = "Shuffle" if shuffle else "Play Genre"
         if subgenre:
@@ -502,8 +506,6 @@ class RoonApi():
         LOGGER.info("Registered to Roon server %s" % reginfo["display_name"])
         LOGGER.debug(reginfo)
         self._token = reginfo["token"]
-        # set flag that we're fully initialized (used for blocking init)
-        self.ready = True
         # fill zones and outputs dicts one time so the data is available right away
         if not self._zones:
             self._zones = self._get_zones()
@@ -512,10 +514,14 @@ class RoonApi():
         # subscribe to state change events
         self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
         self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
+        # set flag that we're fully initialized (used for blocking init)
+        self.ready = True
         
     def _on_state_change(self, msg):
         ''' process messages we receive from the roon websocket into a more usable format'''
         events = []
+        if not msg or not isinstance(msg, dict):
+            return
         for state_key, state_values in msg.items():
             changed_ids = []
             filter_keys = []
@@ -571,7 +577,7 @@ class RoonApi():
     def _get_outputs(self):
         outputs = {}
         data = self._request(ServiceTransport + "/get_outputs")
-        if data:
+        if data and "outputs" in data:
             for output in data["outputs"]:
                 outputs[output["output_id"]] = output
         return outputs
@@ -579,14 +585,14 @@ class RoonApi():
     def _get_zones(self):
         zones = {}
         data = self._request(ServiceTransport + "/get_zones")
-        if data:
+        if data and "zones" in data:
             for zone in data["zones"]:
                 zones[zone["zone_id"]] = zone
         return zones
 
     def _request(self, command, data=None):
         ''' send command and wait for result '''
-        if not self.ready or not self._roonsocket:
+        if not self._roonsocket:
             retries = 20
             while (not self.ready or not self._roonsocket) and retries:
                 retries -= 1
@@ -666,7 +672,11 @@ class RoonApi():
         ''' monitor the connection state of the socket and reconnect if needed'''
         while not self._exit:
             if self._roonsocket and self._roonsocket.failed_state:
-                LOGGER.warning("Socket connection lost! Will try to reconnect")
+                LOGGER.warning("Socket connection lost! Will try to reconnect in 20s")
+                count = 0
+                while not self._exit and count < 21:
+                    count += 1
+                    time.sleep(1)
                 if not self._exit:
                     self._server_discovered(self._host, self._port)
             time.sleep(2)
