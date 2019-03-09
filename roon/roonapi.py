@@ -143,6 +143,10 @@ class RoonApi():
                 value: The new volume value, or the increment value or step (as percentage)
                 method: How to interpret the volume ('absolute'|'relative'|'relative_step')
         '''
+        if not "volume" in self._outputs[output_id]:
+            LOGGER.info("This endpoint has fixed volume.")
+            return
+
         if method == "absolute":
             if self._outputs[output_id]["volume"]["type"] == "db":
                 value = int((float(value) / 100) * 80) - 80
@@ -471,7 +475,7 @@ class RoonApi():
             self._roonsocket.stop()
 
     def _server_discovered(self, host, port):
-        ''' called when the roon server is auto discovered on the network'''
+        ''' called when the roon server is (auto) discovered on the network'''
         LOGGER.info("Connecting to Roon server %s:%s" % (host, port))
         ws_address = "ws://%s:%s/api" %(host, port)
         self._host = host
