@@ -1,8 +1,15 @@
-from __future__ import unicode_literals
+"""
+Module defining a class to discover Roon servers.
+
+If multiple servers are available on the network, the first to be discovered
+is selected. This may not be the one you have enabled the plugin for.
+"""
+
 import threading
 import socket
 import os.path
-from .constants import *
+from .soodmessage import SOODMessage, FormatException
+
 
 class RoonDiscovery(threading.Thread):
     """Class to discover Roon Servers connected in the network."""
@@ -15,7 +22,7 @@ class RoonDiscovery(threading.Thread):
         self.daemon = True
 
     def run(self):
-        ''' run discovery untill server found '''
+        ''' run discovery until server found '''
         while not self._exit.isSet():
             host, port = self.first()
             if host:
@@ -27,7 +34,7 @@ class RoonDiscovery(threading.Thread):
 
     def all(self):
         """Scan and return all found entries as a list. Each server is a tuple of host,port."""
-        self.discover(first_only=False)
+        self._discover(first_only=False)
 
     def first(self):
         ''' returns first server that is found'''
@@ -38,36 +45,29 @@ class RoonDiscovery(threading.Thread):
         """update the server entry with details"""
         this_dir = os.path.dirname(os.path.abspath(__file__))
         sood_file = os.path.join(this_dir, ".soodmsg")
-        with open(sood_file) as f:
-            msg = f.read()
+        with open(sood_file) as sood_query_file:
+            msg = sood_query_file.read()
         msg = msg.encode()
         entries = []
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.settimeout(5)
-        sock.bind(('', 0))
-        try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            sock.settimeout(5)
+            sock.bind(('', 0))
             sock.sendto(msg, ('<broadcast>', 9003))
             while not self._exit.isSet():
                 try:
                     data, server = sock.recvfrom(1024)
-                    data = data.decode()
-                    lines = []
-                    for line in data.split("\n"):
-                        lines.extend(line.split("\x04"))
-                    if "SOOD" in lines[0] and len(lines) > 6 and "http_port" in lines[4]:
-                        # match for Roon server found!
-                        port = int(lines[5].encode("utf-8").strip())
-                        host = server[0]
-                        entries.append((host, port))
-                        if first_only:
-                            # we're only interested in the first server found
-                            break
+                    message = SOODMessage(data).as_dictionary
+                    host = server[0]
+                    port = message["properties"]["http_port"]
+                    entries.append((host, port))
+                    if first_only:
+                        # we're only interested in the first server found
+                        break
                 except socket.timeout:
+                    print("timeout")
                     break
-                except Exception as exc:
-                    LOGGER.exception(exc)
-        finally:
-            sock.close()
+                except FormatException as format_exception:
+                    print(format_exception.message)
+                    break
         return entries
-    
