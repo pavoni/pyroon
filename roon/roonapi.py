@@ -145,7 +145,7 @@ class RoonApi():
         '''
         if not "volume" in self._outputs[output_id]:
             LOGGER.info("This endpoint has fixed volume.")
-            return
+            return None
 
         if method == "absolute":
             if self._outputs[output_id]["volume"]["type"] == "db":
