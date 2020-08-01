@@ -25,7 +25,7 @@ class RoonApi():
     def token(self):
         ''' the authentication key that was retrieved from the registration with Roon'''
         return self._token
-    
+
     @property
     def zones(self):
         ''' all zones, returned as dict'''
@@ -59,7 +59,7 @@ class RoonApi():
         return None
 
     def zone_by_output_name(self, output_name):
-        ''' 
+        '''
             get the zone details by an output name
             params:
                 output_name: the name of the output
@@ -72,7 +72,7 @@ class RoonApi():
         return None
 
     def get_image(self, image_key, scale="fit", width=500, height=500):
-        ''' 
+        '''
             get the image url for the specified image key
             params:
                 image_key: the key for the image as retrieved in other api calls
@@ -107,7 +107,7 @@ class RoonApi():
             send standby command to the specified output
             params:
                 output_id: the id of the output to put in standby
-                control_key: The control_key that identifies the source_control that is to be put into standby. 
+                control_key: The control_key that identifies the source_control that is to be put into standby.
                              If omitted, then all source controls on this output that support standby will be put into standby.
         '''
         data = {  "output_id": output_id, "control_key": control_key }
@@ -146,12 +146,17 @@ class RoonApi():
         if not "volume" in self._outputs[output_id]:
             LOGGER.info("This endpoint has fixed volume.")
             return None
+        # Home assistant was catching this - so catch here to try and diagnose what needs to be checked.
+        try:
+            if method == "absolute":
+                if self._outputs[output_id]["volume"]["type"] == "db":
+                    value = int((float(value) / 100) * 80) - 80
+            data = {  "output_id": output_id, "how": method, "value": value }
+            return self._request(ServiceTransport + "/change_volume", data)
+        except Exception as exc:  # pylint: disable=broad-except
+            LOGGER.error("set_volume_level failed for entity %s \n %s.", str(exc))
+            return None
 
-        if method == "absolute":
-            if self._outputs[output_id]["volume"]["type"] == "db":
-                value = int((float(value) / 100) * 80) - 80
-        data = {  "output_id": output_id, "how": method, "value": value }
-        return self._request(ServiceTransport + "/change_volume", data)
 
     def seek(self, zone_or_output_id, seconds, method="absolute"):
         '''
@@ -184,7 +189,7 @@ class RoonApi():
         loop = "loop" if repeat else "disabled"
         data = {  "zone_or_output_id": zone_or_output_id, "loop": loop }
         return self._request(ServiceTransport + "/change_settings", data)
-    
+
     def transfer_zone(self, from_zone_or_output_id, to_zone_or_output_id):
         '''
             Transfer the current queue from one zone to another
@@ -192,7 +197,7 @@ class RoonApi():
                 from_zone_or_output_id - The source zone or output
                 to_zone_or_output_id - The destination zone or output
         '''
-        data = { "from_zone_or_output_id": from_zone_or_output_id, 
+        data = { "from_zone_or_output_id": from_zone_or_output_id,
                     "to_zone_or_output_id": to_zone_or_output_id }
         return self._request(ServiceTransport + "/transfer_zone", data)
 
@@ -299,7 +304,7 @@ class RoonApi():
         self._state_callbacks.append( (callback, event_filter, id_filter) )
 
     def register_queue_callback(self, callback, zone_or_output_id=""):
-        ''' 
+        '''
             subscribe to queue change events
             callback: function which will be called with the updated data (provided as dict object
             zone_or_output_id: If provided, only listen for updates for this zone or output
@@ -339,9 +344,9 @@ class RoonApi():
         return self._request(ServiceBrowse + "/pop", opts)
 
     def browse_by_path(self, search_paths, zone_or_output_id="", offset=0, search_input=None):
-        ''' 
+        '''
             workaround to browse content by specifying the path to the content
-            params: 
+            params:
                 search_paths: a list of names to look for in the hierarchie.
                               e.g. ["Playlists", "My Favourite Playlist"]
                 zone_or_output_id: id of a zone or output on which behalf the search is performed.
@@ -384,7 +389,7 @@ class RoonApi():
 
     def artists(self, offset=0):
         '''return the list of artists in the library'''
-        return self.browse_by_path(["Library", "Artists"], offset=offset) 
+        return self.browse_by_path(["Library", "Artists"], offset=offset)
 
     def albums(self, offset=0):
         '''return the list of albums in the library'''
@@ -429,7 +434,7 @@ class RoonApi():
 
 
     ############# private methods ##################
-    
+
 
     def __init__(self, appinfo, token=None, host=None, port=9100, blocking_init=True):
         '''
@@ -438,8 +443,8 @@ class RoonApi():
             token: used for presistant storage of the auth token, will be set to token attribute if retrieved. You should handle saving of the key yourself
             host: optional the ip or hostname of the Roon server, will be auto discovered if ommitted
             port: optional the http port of the Roon websockets api. Should be default of 9100
-            blocking_init: By default the init will halt untill the socket is connected and the app is authenticated, 
-                           if you set bool to False the init will continue but you will only receive data once the connection is fully initialized. 
+            blocking_init: By default the init will halt untill the socket is connected and the app is authenticated,
+                           if you set bool to False the init will continue but you will only receive data once the connection is fully initialized.
                            The latter is preferred if you're (only) using the callbacks
         '''
         self._appinfo = appinfo
@@ -460,7 +465,7 @@ class RoonApi():
         th = threading.Thread(target=self._socket_watcher)
         th.daemon = True
         th.start()
-                
+
     def __exit__(self, type, value, tb):
         self.stop()
 
@@ -520,7 +525,7 @@ class RoonApi():
         self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
         # set flag that we're fully initialized (used for blocking init)
         self.ready = True
-        
+
     def _on_state_change(self, msg):
         ''' process messages we receive from the roon websocket into a more usable format'''
         events = []
