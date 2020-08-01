@@ -14,12 +14,12 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name=NAME,
     version=VERSION,
-    author='Marcel van der Veldt',
-    author_email='marcelveldt@users.noreply.github.com',
+    author='Marcel van der Veldt, Greg Dowling',
+    author_email='mail@gregdowling.com',
     description='Provides a python interface to interact with Roon',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url = 'https://github.com/marcelveldt/python-roon.git',
+    url = 'http://github.com/pavoni/pyroon',
     packages=['roon'],
     classifiers=(
         "Programming Language :: Python :: 2",
