@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "roon"
+name = "roonapi"
 version = "0.0.22"
 description = "Provides a python interface to interact with Roon"
 authors = [
