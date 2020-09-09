@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "roon"
+version = "0.0.22"
+description = "Provides a python interface to interact with Roon"
+authors = [
+    "Marcel van der Veldt",
+    "Greg Dowling <mail@gregdowling.com>"
+]
+license = "Apache-2.0"
+
+keywords = ['roon', 'api']
+
+readme = 'README.md'
+
+repository = "https://github.com/pavoni/pyroon"
+homepage = "https://github.com/pavoni/pyroon"
+
+[tool.poetry.dependencies]
+python = "^3.6 || ^3.7"
+ifaddr = ">=0.1.0"
+requests = ">=2.0"
+six = ">=1.10.0"
+
+[tool.poetry.dev-dependencies]
+flake8-docstrings = ">=1.3.0"
+flake8 = ">=3.6.0"
+mypy = ">=0.650"
+pydocstyle = "3.0.0"
+pylint = "==2.4.3"
+pytest = "==5.2.1"
+websocket_client = ">=0.57.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
