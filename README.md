@@ -8,7 +8,7 @@ See the tests folder for some more code examples.
 Some example code:
 
 ```
-from roon import RoonApi  
+from roonapi import RoonApi
 appinfo = {
         "extension_id": "python_roon_test",
         "display_name": "Python library for Roon",
@@ -16,7 +16,7 @@ appinfo = {
         "publisher": "marcelveldt",
         "email": "mygreat@emailaddress.com"
     }
-    
+
 token = open('mytokenfile').read()
 roonapi = RoonApi(appinfo, token)
 

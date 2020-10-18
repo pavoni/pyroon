@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import time
-from .constants import LOGGER, *
+from .constants import *
 from .roonapisocket import RoonApiWebSocket
 from .discovery  import RoonDiscovery
 import threading
@@ -455,7 +455,6 @@ class RoonApi():
 
         first_item = result["items"][0]
         hint = first_item["hint"]
-        LOGGER.warning(first_item)
         if not (hint == "action" or hint == "action_list"):
             LOGGER.error(
                 "Playback requested but item is a list, not a playable action or action_list id: %s",
