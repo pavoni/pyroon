@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import time
-from .constants import *
+from .constants import LOGGER, *
 from .roonapisocket import RoonApiWebSocket
 from .discovery  import RoonDiscovery
 import threading
@@ -427,6 +427,72 @@ class RoonApi():
             return self.browse_by_path(["Genres", genre_name, subgenre, "Play Genre", action], zone_or_output_id)
         else:
             return self.browse_by_path(["Genres", genre_name, "Play Genre", action], zone_or_output_id)
+
+    def play_id(self, zone_or_output_id, media_id):
+        '''Play based on the media_id from the browse api.'''
+        opts = {
+            "zone_or_output_id": zone_or_output_id,
+            "item_key": media_id,
+            "hierarchy": "browse",
+        }
+        header_result = self.browse_browse(opts)
+        # For Internet radio the above load starts play - so catch this and return
+        try:
+            if header_result["list"]["level"] == 0:
+                LOGGER.info("Initial load started playback")
+                return
+        except NameError:
+            pass
+
+        if header_result is None:
+            LOGGER.error(
+                "Playback requested of unsupported id: %s",
+                media_id,
+            )
+            return
+
+        result = self.browse_load(opts)
+
+        first_item = result["items"][0]
+        hint = first_item["hint"]
+        LOGGER.warning(first_item)
+        if not (hint == "action" or hint == "action_list"):
+            LOGGER.error(
+                "Playback requested but item is a list, not a playable action or action_list id: %s",
+                media_id,
+            )
+            return
+
+        if hint == "action_list":
+            opts["item_key"] = first_item["item_key"]
+            result = self.browse_browse(opts)
+            if result is None:
+                LOGGER.error(
+                    "Playback requested of unsupported id: %s",
+                    media_id,
+                )
+                return
+            result = self.browse_load(opts)
+            first_item = result["items"][0]
+            hint = first_item["hint"]
+
+        if hint != "action":
+            LOGGER.error(
+                "Playback requested but item does not have a playable action id: %s, %s",
+                media_id, header_result
+            )
+            return
+
+        play_action = result["items"][0]
+        hint = play_action["hint"]
+        LOGGER.info("'%s' for '%s')", play_action["title"], header_result)
+        opts["item_key"] = play_action["item_key"]
+        self.browse_browse(opts)
+        if result is None:
+            LOGGER.error(
+                "Playback requested of unsupported id: %s",
+                media_id,
+            )
 
     def search_artists(self, search_input):
         ''' search for artists by name'''
