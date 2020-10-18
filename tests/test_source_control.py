@@ -5,9 +5,9 @@
 
 import os.path
 import signal
-import sys 
+import sys
 import time
-from roon import RoonApi   
+from roonapi import RoonApi
 
 
 token = None
