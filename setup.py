@@ -4,7 +4,7 @@
 
 from setuptools import setup, find_packages
 
-VERSION = "0.0.21"
+VERSION = "0.0.22dev1"
 NAME = "roonapi"
 INSTALL_REQUIRES = ["websocket-client"]
 
