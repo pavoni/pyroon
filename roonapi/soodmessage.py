@@ -33,7 +33,7 @@ class FormatException(Exception):
         self.message = message
 
 
-class SOODMessage:
+class SOODMessage:  # pylint: disable=too-few-public-methods
     """Class for parsing SOOD messages."""
 
     __MESSAGE_PREFIX__ = b"SOOD\x02"
