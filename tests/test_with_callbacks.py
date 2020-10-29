@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-''' some basic functions to test on the roon api'''
+""" some basic functions to test on the roon api"""
 
 import os.path
 import signal
@@ -16,16 +16,17 @@ if os.path.isfile("roontoken.txt"):
         token = f.read()
 
 appinfo = {
-        "extension_id": "python_roon_test",
-        "display_name": "Python library for Roon",
-        "display_version": "1.0.0",
-        "publisher": "marcelveldt",
-        "email": "my@email.com"
-    }
+    "extension_id": "python_roon_test",
+    "display_name": "Python library for Roon",
+    "display_version": "1.0.0",
+    "publisher": "marcelveldt",
+    "email": "my@email.com",
+}
 
 # callback will be called when we register for state events
 def state_callback(event, changed_items):
-    print("%s: %s" %(event, changed_items))
+    print("%s: %s" % (event, changed_items))
+
 
 # initialize Roon api and register the callback for state changes
 roonapi = RoonApi(appinfo, token)
@@ -53,9 +54,10 @@ def cleanup(signum, frame):
             f.write(token)
     sys.exit(signum)
 
+
 # signal handler
 for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
-        signal.signal(sig, cleanup)
+    signal.signal(sig, cleanup)
 
 # keep it alive!
 while True:
