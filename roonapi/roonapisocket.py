@@ -14,7 +14,9 @@ except ImportError:
     import _thread as thread
 
 
-class RoonApiWebSocket(threading.Thread):  # pylint: disable=too-many-instance-attributes
+class RoonApiWebSocket(
+    threading.Thread
+):  # pylint: disable=too-many-instance-attributes
     """Class to handle the roon websocket connection."""
 
     _socket = None
@@ -122,12 +124,16 @@ class RoonApiWebSocket(threading.Thread):  # pylint: disable=too-many-instance-a
                 # incoming message for source_control endpoint
                 event = header.split("/")[-1]
                 if self.source_controls_callback:
-                    self.source_controls_callback(event, request_id, body)  # pylint: disable=not-callable
+                    self.source_controls_callback(
+                        event, request_id, body
+                    )  # pylint: disable=not-callable
             elif ControlVolume in header:
                 # incoming message for volume_control endpoint
                 event = header.split("/")[-1]
                 if self.volume_controls_callback:
-                    self.volume_controls_callback(event, request_id, body)  # pylint: disable=not-callable
+                    self.volume_controls_callback(
+                        event, request_id, body
+                    )  # pylint: disable=not-callable
             elif ServicePing in header:
                 # reply to incoming ping from server
                 self.send_complete(request_id, "Success")
