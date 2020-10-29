@@ -62,7 +62,7 @@ class RoonApiWebSocket(threading.Thread):
             on_message=self.on_message,
             on_error=self.on_error,
             on_open=self.on_open,
-            on_close=self.on_close
+            on_close=self.on_close,
         )
         threading.Thread.__init__(self)
         self.daemon = True
@@ -71,7 +71,7 @@ class RoonApiWebSocket(threading.Thread):
         """Subscribe to events."""
         subkey = self._subkey
         self._subkey += 1
-        data = {u"subscription_key": subkey}
+        data = {"subscription_key": subkey}
         if opt_data and isinstance(opt_data, dict):
             data.update(opt_data)
         request_id = self.send_request(service + "/subscribe_" + endpoint, data)
@@ -80,7 +80,7 @@ class RoonApiWebSocket(threading.Thread):
             "endpoint": endpoint,
             "request_id": request_id,
             "subkey": subkey,
-            "callback": callback
+            "callback": callback,
         }
 
     def unsubscribe(self, service, endpoint):
@@ -90,15 +90,19 @@ class RoonApiWebSocket(threading.Thread):
             if value["service"] == service and value["endpoint"] == endpoint:
                 matches.append((key, value["subkey"]))
         for item in matches:
-            self.send_request(service + "/unsubscribe_" + endpoint, {"subscription_key": item[1]})
+            self.send_request(
+                service + "/unsubscribe_" + endpoint, {"subscription_key": item[1]}
+            )
             del self._subscriptions[item[0]]
 
     def on_message(self, ws, message=None):
         """Handle message callback."""
         if not message:
-            message = ws  # compatability fix because of change in websocket-client v0.49
+            message = (
+                ws  # compatability fix because of change in websocket-client v0.49
+            )
         try:
-            message = message.decode('utf-8')
+            message = message.decode("utf-8")
             lines = message.split("\n")
             header = lines[0]
             body = ""
@@ -155,7 +159,7 @@ class RoonApiWebSocket(threading.Thread):
 
     def on_open(self, ws=None):
         """Handle opening the session."""
-        LOGGER.debug('Opened Websocket connection to the server...')
+        LOGGER.debug("Opened Websocket connection to the server...")
         self.connected = True
         if self.connected_callback:
             thread.start_new_thread(self.connected_callback, ())
@@ -166,11 +170,11 @@ class RoonApiWebSocket(threading.Thread):
             LOGGER.error("Connection is not (yet) ready!")
             return False
         body = json.dumps(body)
-        msg = u"MOO/1 CONTINUE Changed\nRequest-Id: %s\nContent-Length: %s\nContent-Type: application/json\n\n%s" % (request_id, len(body), body)
-        try:
-            msg = bytes(msg)  # py2
-        except TypeError:
-            msg = bytes(msg, 'utf-8')  # py3
+        msg = (
+            "MOO/1 CONTINUE Changed\nRequest-Id: %s\nContent-Length: %s\nContent-Type: application/json\n\n%s"
+            % (request_id, len(body), body)
+        )
+        msg = bytes(msg, "utf-8")
         self._socket.send(msg, 0x2)
 
     def send_complete(self, request_id, name, body=""):
@@ -178,19 +182,21 @@ class RoonApiWebSocket(threading.Thread):
         if not self.connected:
             LOGGER.error("Connection is not (yet) ready!")
             return False
-        msg = u"MOO/1 COMPLETE %s\nRequest-Id: %s" % (name, request_id)
+        msg = "MOO/1 COMPLETE %s\nRequest-Id: %s" % (name, request_id)
         if body:
             body = json.dumps(body)
-            msg += u"\nContent-Length: %s\nContent-Type: application/json\n\n%s" % (len(body), body)
+            msg += "\nContent-Length: %s\nContent-Type: application/json\n\n%s" % (
+                len(body),
+                body,
+            )
         else:
             msg += "\n\n"
-        try:
-            msg = bytes(msg)  # py2
-        except TypeError:
-            msg = bytes(msg, 'utf-8')  # py3
+        msg = bytes(msg, "utf-8")
         self._socket.send(msg, 0x2)
 
-    def send_request(self, command, body=None, content_type="application/json", header_type="REQUEST"):
+    def send_request(
+        self, command, body=None, content_type="application/json", header_type="REQUEST"
+    ):
         """Send request to the roon sever."""
         if not self.connected:
             LOGGER.error("Connection is not (yet) ready!")
@@ -199,13 +205,13 @@ class RoonApiWebSocket(threading.Thread):
         self._requestid += 1
         self._results[request_id] = None
         if body is None:
-            msg = u"MOO/1 REQUEST %s\nRequest-Id: %s\n\n" % (command, request_id)
+            msg = "MOO/1 REQUEST %s\nRequest-Id: %s\n\n" % (command, request_id)
         else:
             body = json.dumps(body)
-            msg = u"MOO/1 REQUEST %s\nRequest-Id: %s\nContent-Length: %s\nContent-Type: %s\n\n%s" % (command, request_id, len(body), content_type, body)
-        try:
-            msg = bytes(msg)  # py2
-        except TypeError:
-            msg = bytes(msg, 'utf-8')  # py3
+            msg = (
+                "MOO/1 REQUEST %s\nRequest-Id: %s\nContent-Length: %s\nContent-Type: %s\n\n%s"
+                % (command, request_id, len(body), content_type, body)
+            )
+        msg = bytes(msg, "utf-8")
         self._socket.send(msg, 0x2)
         return request_id
