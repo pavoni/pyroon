@@ -16,7 +16,7 @@ repository = "https://github.com/pavoni/pyroon"
 homepage = "https://github.com/pavoni/pyroon"
 
 [tool.poetry.dependencies]
-python = "^3.6 || ^3.7"
+python = "^3.7"
 ifaddr = ">=0.1.0"
 requests = ">=2.0"
 six = ">=1.10.0"
