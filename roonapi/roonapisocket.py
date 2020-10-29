@@ -123,6 +123,7 @@ class RoonApiWebSocket(
             if ControlSource in header:
                 # incoming message for source_control endpoint
                 event = header.split("/")[-1]
+                # pylint: disable=using-constant-test
                 if self.source_controls_callback:
                     self.source_controls_callback(
                         event, request_id, body
@@ -130,6 +131,7 @@ class RoonApiWebSocket(
             elif ControlVolume in header:
                 # incoming message for volume_control endpoint
                 event = header.split("/")[-1]
+                # pylint: disable=using-constant-test
                 if self.volume_controls_callback:
                     self.volume_controls_callback(
                         event, request_id, body
@@ -138,6 +140,7 @@ class RoonApiWebSocket(
                 # reply to incoming ping from server
                 self.send_complete(request_id, "Success")
             elif "Registered" in header:
+                # pylint: disable=using-constant-test
                 if self.registered_calback:
                     self.registered_calback(body)  # pylint: disable=not-callable
             elif request_id in self._subscriptions:
@@ -171,6 +174,7 @@ class RoonApiWebSocket(
         """Handle opening the session."""
         LOGGER.debug("Opened Websocket connection to the server...")
         self.connected = True
+        # pylint: disable=using-constant-test
         if self.connected_callback:
             thread.start_new_thread(self.connected_callback, ())
 
