@@ -12,8 +12,8 @@ from .constants import (
 from .roonapisocket import RoonApiWebSocket
 from .discovery import RoonDiscovery
 
- # pylint: disable=too-many-instance-attributes
-class RoonApi:
+
+class RoonApi:  # pylint: disable=too-many-instance-attributes
     """Class to handle talking to the roon server."""
 
     _roonsocket = None
@@ -258,7 +258,7 @@ class RoonApi:
         data = {"output_ids": output_ids}
         return self._request(ServiceTransport + "/ungroup_outputs", data)
 
-     # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments
     def register_source_control(
         self,
         control_key,
