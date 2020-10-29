@@ -1,5 +1,6 @@
-'''
+r"""
 SOOD messages consists of a header and a list of properties encoded as key/value pairs.
+
 The header starts with "SOOD", followed by a byte with the value 2, followed by a byte representing the type.
 The type is either 'Q' for "Query" or # 'R' for "Response.
 The key/value pairs follows directly after the type.
@@ -17,43 +18,49 @@ SOOD\x02Q<1bytelen>query_service_id<2bytelen>00720724-5143-4a9b-abac-0e50cba674b
 
 Response format:
 SOOD\x02R<1bytelen>name<2bytelen><the_name><1bytelen>display_version<2bytelen><the_version><1bytelen>unique_id<2bytelen><the_id><1bytelen>service_id<twobytelen>00720724-5143-4a9b-abac-0e50cba674bb<1bytelen>tcp_port<twobytelen><the_port><1bytelen>http_port<twobytelen><the_port><1bytelen>_tid<twobytelen>c64e3888-f2f2-4c4a-9f89-2093ae4217a6
-'''
+"""
 
 
 from enum import Enum, auto
 
 
 class FormatException(Exception):
-    """Exception to be raised on errors in a binary SOOD message"""
+    """Exception to be raised on errors in a binary SOOD message."""
+
     def __init__(self, message):
+        """Init with the message that causes the error."""
         Exception.__init__()
         self.message = message
 
 
 class SOODMessage:
     """Class for parsing SOOD messages."""
+
     __MESSAGE_PREFIX__ = b'SOOD\x02'
 
     class SOODMessageType(Enum):
-        """Symbolic names for the message types"""
+        """Symbolic names for the message types."""
+
         QUERY = auto()
         RESPONSE = auto()
 
         def __repr__(self):
+            """Print class and name."""
             return f"<{self.__class__.__name__}, {self.name}>"
 
     def __init__(self, message):
+        """Init with the message to parse."""
         if not message.startswith(self.__MESSAGE_PREFIX__):
             raise FormatException("Error in message header")
         self._message = message
         self._current_position = len(self.__MESSAGE_PREFIX__)
 
     def _parse_property(self, size_of_size):
-        length = int.from_bytes(self._message[self._current_position:self._current_position+size_of_size], "big")
+        length = int.from_bytes(self._message[self._current_position:self._current_position + size_of_size], "big")
         self._current_position += size_of_size
         if self._current_position + length > len(self._message):
             return None
-        part_string = self._message[self._current_position:self._current_position+length].decode()
+        part_string = self._message[self._current_position:self._current_position + length].decode()
         self._current_position += len(part_string)
         return part_string
 
