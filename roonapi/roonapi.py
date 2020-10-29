@@ -1,6 +1,13 @@
 from __future__ import unicode_literals
 import time
-from .constants import ServiceBrowse, ControlVolume, ControlSource, ServiceTransport, ServiceRegistry, LOGGER
+from .constants import (
+    ServiceBrowse,
+    ControlVolume,
+    ControlSource,
+    ServiceTransport,
+    ServiceRegistry,
+    LOGGER,
+)
 from .roonapisocket import RoonApiWebSocket
 from .discovery import RoonDiscovery
 import threading
