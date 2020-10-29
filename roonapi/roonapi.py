@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import time
+import threading
 from .constants import (
     ServiceBrowse,
     ControlVolume,
@@ -10,9 +11,8 @@ from .constants import (
 )
 from .roonapisocket import RoonApiWebSocket
 from .discovery import RoonDiscovery
-import threading
 
-
+ # pylint: disable=too-many-instance-attributes
 class RoonApi:
     """Class to handle talking to the roon server."""
 
@@ -112,7 +112,8 @@ class RoonApi:
             control:
                  * "play" - If paused or stopped, start playback
                  * "pause" - If playing or loading, pause playback
-                 * "playpause" - If paused or stopped, start playback. If playing or loading, pause playback.
+                 * "playpause" - If paused or stopped, start playback.
+                                 If playing or loading, pause playback.
                  * "stop" - Stop playback and release the audio device immediately
                  * "previous" - Go to the start of the current track, or to the previous track
                  * "next" - Advance to the next track
@@ -126,8 +127,10 @@ class RoonApi:
 
         params:
             output_id: the id of the output to put in standby
-            control_key: The control_key that identifies the source_control that is to be put into standby.
-                         If omitted, then all source controls on this output that support standby will be put into standby.
+            control_key: The control_key that identifies the source_control
+                         that is to be put into standby. If omitted,
+                         then all source controls on this output that support
+                         standby will be put into standby.
         """
         data = {"output_id": output_id, "control_key": control_key}
         return self._request(ServiceTransport + "/standby", data)
@@ -158,7 +161,9 @@ class RoonApi:
 
     def change_volume(self, output_id, value, method="absolute"):
         """
-        Change the volume of an output. For convenience you can always just give the new volume level as percentage.
+        Change the volume of an output.
+
+        For convenience you can always just give the new volume level as percentage.
 
         params:
             output_id: the id of the output
@@ -168,7 +173,8 @@ class RoonApi:
         if "volume" not in self._outputs[output_id]:
             LOGGER.info("This endpoint has fixed volume.")
             return None
-        # Home assistant was catching this - so catch here to try and diagnose what needs to be checked.
+        # Home assistant was catching this - so catch here
+        # to try and diagnose what needs to be checked.
         try:
             if method == "absolute":
                 if self._outputs[output_id]["volume"]["type"] == "db":
@@ -176,7 +182,7 @@ class RoonApi:
             data = {"output_id": output_id, "how": method, "value": value}
             return self._request(ServiceTransport + "/change_volume", data)
         except Exception as exc:  # pylint: disable=broad-except
-            LOGGER.error("set_volume_level failed for entity %s \n %s.", str(exc))
+            LOGGER.error("set_volume_level failed for entity %s.", str(exc))
             return None
 
     def seek(self, zone_or_output_id, seconds, method="absolute"):
@@ -252,6 +258,7 @@ class RoonApi:
         data = {"output_ids": output_ids}
         return self._request(ServiceTransport + "/ungroup_outputs", data)
 
+     # pylint: disable=too-many-arguments
     def register_source_control(
         self,
         control_key,
@@ -282,7 +289,7 @@ class RoonApi:
             return
         if not self._source_controls_request_id:
             LOGGER.warning("Not yet registered, can not update source control")
-            return False
+            return
         self._source_controls[control_key][1]["status"] = new_state
         data = {"controls_changed": [self._source_controls[control_key][1]]}
         self._roonsocket.send_continue(self._source_controls_request_id, data)
@@ -325,7 +332,7 @@ class RoonApi:
             return
         if not self._volume_controls_request_id:
             LOGGER.warning("Not yet registered, can not update volume control")
-            return False
+            return
         if volume is not None:
             self._volume_controls[control_key][1]["volume_value"] = volume
         if mute is not None:
@@ -499,10 +506,9 @@ class RoonApi:
                 ["Genres", genre_name, subgenre, "Play Genre", action],
                 zone_or_output_id,
             )
-        else:
-            return self.browse_by_path(
-                ["Genres", genre_name, "Play Genre", action], zone_or_output_id
-            )
+        return self.browse_by_path(
+            ["Genres", genre_name, "Play Genre", action], zone_or_output_id
+        )
 
     def play_id(self, zone_or_output_id, media_id):
         """Play based on the media_id from the browse api."""
@@ -531,7 +537,7 @@ class RoonApi:
 
         first_item = result["items"][0]
         hint = first_item["hint"]
-        if not (hint == "action" or hint == "action_list"):
+        if not (hint in ["action", "action_list"]):
             LOGGER.error(
                 "Playback requested but item is a list, not a playable action or action_list id: %s",
                 media_id,
@@ -593,7 +599,7 @@ class RoonApi:
         self._appinfo = appinfo
         self._token = token
         if not appinfo or not isinstance(appinfo, dict):
-            raise ("appinfo missing or in incorrect format!")
+            raise "appinfo missing or in incorrect format!"
 
         if host and port:
             self._server_discovered(host, port)
@@ -605,11 +611,12 @@ class RoonApi:
             while not self.ready and not self._exit:
                 time.sleep(1)
         # start socket watcher
-        th = threading.Thread(target=self._socket_watcher)
-        th.daemon = True
-        th.start()
+        thread_id = threading.Thread(target=self._socket_watcher)
+        thread_id.daemon = True
+        thread_id.start()
 
-    def __exit__(self, type, value, tb):
+    # pylint: disable=redefined-builtin
+    def __exit__(self, type, value, exc_tb):
         """Stop socket and discovery on exit."""
         self.stop()
 
@@ -672,6 +679,7 @@ class RoonApi:
         # set flag that we're fully initialized (used for blocking init)
         self.ready = True
 
+    # pylint: disable=too-many-branches
     def _on_state_change(self, msg):
         """Process messages we receive from the roon websocket into a more usable format."""
         events = []
@@ -735,6 +743,7 @@ class RoonApi:
                     continue
                 try:
                     callback(event, changed_ids)
+                # pylint: disable=broad-except
                 except Exception:
                     LOGGER.exception("Error while executing callback!")
 
@@ -772,9 +781,8 @@ class RoonApi:
             result = self._roonsocket.results.get(request_id)
             if result:
                 break
-            else:
-                retries -= 1
-                time.sleep(0.05)
+            retries -= 1
+            time.sleep(0.05)
         try:
             del self._roonsocket.results[request_id]
         except KeyError:
@@ -788,7 +796,7 @@ class RoonApi:
             self._roonsocket.send_continue(request_id, {"controls_added": []})
             # send all source controls already registered (handle connection loss)
             controls = []
-            for callback, control_data in self._source_controls.values():
+            for _, control_data in self._source_controls.values():
                 controls.append(control_data)
             self._roonsocket.send_continue(request_id, {"controls_added": controls})
             self._source_controls_request_id = request_id
@@ -798,7 +806,7 @@ class RoonApi:
                 # launch callback
                 self._roonsocket.send_complete(request_id, "Success")
                 self._source_controls[control_key][0](control_key, event)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 LOGGER.exception("Error in source_control callback")
                 self._roonsocket.send_complete(request_id, "Error")
 
@@ -808,7 +816,7 @@ class RoonApi:
             LOGGER.debug("found subscription ID for volume controls: %s " % request_id)
             # send all volume controls already registered (handle connection loss)
             controls = []
-            for callback, control_data in self._volume_controls.values():
+            for _, control_data in self._volume_controls.values():
                 controls.append(control_data)
             self._roonsocket.send_continue(request_id, {"controls_added": controls})
             self._source_controls_request_id = request_id
@@ -833,7 +841,7 @@ class RoonApi:
             try:
                 self._roonsocket.send_complete(request_id, "Success")
                 self._volume_controls[control_key][0](control_key, event, value)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 LOGGER.exception("Error in volume_control callback")
                 self._roonsocket.send_complete(request_id, "Error")
 
