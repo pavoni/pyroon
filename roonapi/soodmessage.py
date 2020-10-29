@@ -36,7 +36,7 @@ class FormatException(Exception):
 class SOODMessage:
     """Class for parsing SOOD messages."""
 
-    __MESSAGE_PREFIX__ = b'SOOD\x02'
+    __MESSAGE_PREFIX__ = b"SOOD\x02"
 
     class SOODMessageType(Enum):
         """Symbolic names for the message types."""
@@ -56,11 +56,18 @@ class SOODMessage:
         self._current_position = len(self.__MESSAGE_PREFIX__)
 
     def _parse_property(self, size_of_size):
-        length = int.from_bytes(self._message[self._current_position:self._current_position + size_of_size], "big")
+        length = int.from_bytes(
+            self._message[
+                self._current_position : self._current_position + size_of_size
+            ],
+            "big",
+        )
         self._current_position += size_of_size
         if self._current_position + length > len(self._message):
             return None
-        part_string = self._message[self._current_position:self._current_position + length].decode()
+        part_string = self._message[
+            self._current_position : self._current_position + length
+        ].decode()
         self._current_position += len(part_string)
         return part_string
 
@@ -81,7 +88,11 @@ class SOODMessage:
         self._current_position += 1
         if type_letter not in ["Q", "R"]:
             return None
-        return self.SOODMessageType.QUERY if type_letter == "Q" else self.SOODMessageType.RESPONSE
+        return (
+            self.SOODMessageType.QUERY
+            if type_letter == "Q"
+            else self.SOODMessageType.RESPONSE
+        )
 
     @property
     def as_dictionary(self):
