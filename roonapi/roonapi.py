@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
 import time
-from .constants import *
+from .constants import ServiceBrowse, ControlVolume, ControlSource, ServiceTransport, ServiceRegistry, LOGGER
 from .roonapisocket import RoonApiWebSocket
 from .discovery import RoonDiscovery
 import threading
 
 
 class RoonApi:
+    """Class to handle talking to the roon server."""
+
     _roonsocket = None
     _roondiscovery = None
     _host = None
@@ -24,35 +26,35 @@ class RoonApi:
 
     @property
     def token(self):
-        """ the authentication key that was retrieved from the registration with Roon"""
+        """Return the authentication key from the registration with Roon."""
         return self._token
 
     @property
     def zones(self):
-        """ all zones, returned as dict"""
+        """Return All zones as a dict."""
         return self._zones
 
     @property
     def outputs(self):
-        """ all outputs, returned as dict"""
+        """All outputs, returned as dict."""
         return self._outputs
 
     def zone_by_name(self, zone_name):
-        """ get zone details by name"""
+        """Get zone details by name."""
         for zone in self.zones.values():
             if zone["display_name"] == zone_name:
                 return zone
         return None
 
     def output_by_name(self, output_name):
-        """ get the output details from the name"""
+        """Get the output details from the name."""
         for output in self.outputs.values():
             if output["display_name"] == output_name:
                 return output
         return None
 
     def zone_by_output_id(self, output_id):
-        """ get the zone details by output id"""
+        """Get the zone details by output id."""
         for zone in self.zones.values():
             for output in zone["outputs"]:
                 if output["output_id"] == output_id:
@@ -61,11 +63,13 @@ class RoonApi:
 
     def zone_by_output_name(self, output_name):
         """
-        get the zone details by an output name
+        Get the zone details by an output name.
+
         params:
             output_name: the name of the output
         returns: full zone details (dict)
         """
+
         for zone in self.zones.values():
             for output in zone["outputs"]:
                 if output["display_name"] == output_name:
@@ -74,7 +78,8 @@ class RoonApi:
 
     def get_image(self, image_key, scale="fit", width=500, height=500):
         """
-        get the image url for the specified image key
+        Get the image url for the specified image key.
+
         params:
             image_key: the key for the image as retrieved in other api calls
             scale: optional (value of fit, fill or stretch)
@@ -93,7 +98,8 @@ class RoonApi:
 
     def playback_control(self, zone_or_output_id, control="play"):
         """
-        send player command to the specified zone
+        Send player command to the specified zone.
+
         params:
             zone_or_output_id: the id of the zone or output
             control:
@@ -109,7 +115,8 @@ class RoonApi:
 
     def standby(self, output_id, control_key=None):
         """
-        send standby command to the specified output
+        Send standby command to the specified output.
+
         params:
             output_id: the id of the output to put in standby
             control_key: The control_key that identifies the source_control that is to be put into standby.
@@ -120,7 +127,8 @@ class RoonApi:
 
     def convenience_switch(self, output_id, control_key=None):
         """
-        Convenience switch an output, taking it out of standby if needed.
+        Switch (convenience) an output, take it out of standby if needed.
+
         params:
             output_id: the id of the output that should be convenience-switched.
             control_key: The control_key that identifies the source_control that is to be switched.
@@ -132,6 +140,7 @@ class RoonApi:
     def mute(self, output_id, mute=True):
         """
         Mute/unmute an output.
+
         params:
             output_id: the id of the output that should be muted/unmuted
             mute: bool if the output should be muted. Will unmute if set to False
@@ -142,13 +151,14 @@ class RoonApi:
 
     def change_volume(self, output_id, value, method="absolute"):
         """
-        Change the volume of an output. For convenience you can always just give te new volume level as percentage
+        Change the volume of an output. For convenience you can always just give the new volume level as percentage.
+
         params:
             output_id: the id of the output
             value: The new volume value, or the increment value or step (as percentage)
             method: How to interpret the volume ('absolute'|'relative'|'relative_step')
         """
-        if not "volume" in self._outputs[output_id]:
+        if "volume" not in self._outputs[output_id]:
             LOGGER.info("This endpoint has fixed volume.")
             return None
         # Home assistant was catching this - so catch here to try and diagnose what needs to be checked.
@@ -164,7 +174,8 @@ class RoonApi:
 
     def seek(self, zone_or_output_id, seconds, method="absolute"):
         """
-        Seek to a time position within the now playing media
+        Seek to a time position within the now playing media.
+
         params:
             zone_or_output_id: the id of the zone or output
             seconds: The target seek position
@@ -179,7 +190,8 @@ class RoonApi:
 
     def shuffle(self, zone_or_output_id, shuffle=True):
         """
-        Enable/disable shuffle
+        Enable or disable playing in random order.
+
         params:
             zone_or_output_id: the id of the output or zone
             shuffle: bool if shuffle should be enabled. False will disable shuffle
@@ -189,7 +201,8 @@ class RoonApi:
 
     def repeat(self, zone_or_output_id, repeat=True):
         """
-        Enable/disable repeat (loop mode)
+        Enable/disable playing in a loop.
+
         params:
             zone_or_output_id: the id of the output or zone
             repeat: bool if repeat should be enabled. False will disable shuffle
@@ -200,7 +213,8 @@ class RoonApi:
 
     def transfer_zone(self, from_zone_or_output_id, to_zone_or_output_id):
         """
-        Transfer the current queue from one zone to another
+        Transfer the current queue from one zone to another.
+
         params:
             from_zone_or_output_id - The source zone or output
             to_zone_or_output_id - The destination zone or output
@@ -213,7 +227,8 @@ class RoonApi:
 
     def group_outputs(self, output_ids):
         """
-        Create a group of synchronized audio outputs
+        Create a group of synchronized audio outputs.
+
         params:
             output_ids - The outputs to group. The first output's zone's queue is preserved.
         """
@@ -222,7 +237,8 @@ class RoonApi:
 
     def ungroup_outputs(self, output_ids):
         """
-        Ungroup outputs previous grouped
+        Ungroup outputs previous grouped.
+
         params:
             output_ids - The outputs to ungroup.
         """
@@ -237,7 +253,7 @@ class RoonApi:
         initial_state="selected",
         supports_standby=True,
     ):
-        """ register a new source control on the api"""
+        """Register a new source control on the api."""
         if control_key in self._source_controls:
             LOGGER.error("source_control %s is already registered!" % control_key)
             return
@@ -253,7 +269,7 @@ class RoonApi:
             self._roonsocket.send_continue(self._source_controls_request_id, data)
 
     def update_source_control(self, control_key, new_state):
-        """ update an existing source control on the api"""
+        """Update an existing source control on the api."""
         if control_key not in self._source_controls:
             LOGGER.warning("source_control %s is not (yet) registered!" % control_key)
             return
@@ -276,7 +292,7 @@ class RoonApi:
         volume_max=100,
         is_muted=False,
     ):
-        """ register a new volume control on the api"""
+        """Register a new volume control on the api."""
         if control_key in self._volume_controls:
             LOGGER.error("source_control %s is already registered!" % control_key)
             return
@@ -296,23 +312,24 @@ class RoonApi:
             self._roonsocket.send_continue(self._volume_controls_request_id, data)
 
     def update_volume_control(self, control_key, volume=None, mute=None):
-        """ update an existing volume control, report its state to Roon """
+        """Update an existing volume control, report its state to Roon."""
         if control_key not in self._volume_controls:
             LOGGER.warning("volume_control %s is not (yet) registered!" % control_key)
             return
         if not self._volume_controls_request_id:
             LOGGER.warning("Not yet registered, can not update volume control")
             return False
-        if volume != None:
+        if volume is not None:
             self._volume_controls[control_key][1]["volume_value"] = volume
-        if mute != None:
+        if mute is not None:
             self._volume_controls[control_key][1]["is_muted"] = mute
         data = {"controls_changed": [self._volume_controls[control_key][1]]}
         self._roonsocket.send_continue(self._volume_controls_request_id, data)
 
     def register_state_callback(self, callback, event_filter=None, id_filter=None):
         """
-        register a callback to be informed about changes to zones or outputs
+        Register a callback to be informed about changes to zones or outputs.
+
         params:
             callback: method to be called when state changes occur, it will be passed an event param as string and a list of changed objects
                       callback will be called with params:
@@ -333,7 +350,8 @@ class RoonApi:
 
     def register_queue_callback(self, callback, zone_or_output_id=""):
         """
-        subscribe to queue change events
+        Subscribe to queue change events.
+
         callback: function which will be called with the updated data (provided as dict object
         zone_or_output_id: If provided, only listen for updates for this zone or output
         """
@@ -345,28 +363,32 @@ class RoonApi:
 
     def browse_browse(self, opts):
         """
-        undocumented and complex browse call on the roon api
+        Undocumented and complex browse call on the roon api.
+
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
         return self._request(ServiceBrowse + "/browse", opts)
 
     def browse_load(self, opts):
         """
-        undocumented and complex browse call on the roon api
+        Undocumented and complex browse call on the roon api.
+
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
         return self._request(ServiceBrowse + "/load", opts)
 
     def browse_pop_all(self, opts):
         """
-        undocumented and complex browse call on the roon api
+        Undocumented and complex browse call on the roon api.
+
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
         return self._request(ServiceBrowse + "/pop_all", opts)
 
     def browse_pop(self, opts):
         """
-        undocumented and complex browse call on the roon api
+        Undocumented and complex browse call on the roon api.
+
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
         return self._request(ServiceBrowse + "/pop", opts)
@@ -375,7 +397,8 @@ class RoonApi:
         self, search_paths, zone_or_output_id="", offset=0, search_input=None
     ):
         """
-        workaround to browse content by specifying the path to the content
+        Workaround to browse content by specifying the path to the content.
+
         params:
             search_paths: a list of names to look for in the hierarchie.
                           e.g. ["Playlists", "My Favourite Playlist"]
@@ -395,7 +418,7 @@ class RoonApi:
         result = self.browse_load(opts)
         opts["pop_all"] = False
         for search_for in search_paths:
-            if not result or not "items" in result:
+            if not result or "items" not in result:
                 break
             for item in result["items"]:
                 if (
@@ -414,35 +437,35 @@ class RoonApi:
         return result
 
     def playlists(self, offset=0):
-        """ return the list of playlists"""
+        """Return the list of playlists."""
         return self.browse_by_path(["Playlists"], offset=offset)
 
     def internet_radio(self, offset=0):
-        """ return the list of internet radio stations"""
+        """Return the list of internet radio stations."""
         return self.browse_by_path(["Internet Radio"], offset=offset)
 
     def artists(self, offset=0):
-        """return the list of artists in the library"""
+        """Return the list of artists in the library."""
         return self.browse_by_path(["Library", "Artists"], offset=offset)
 
     def albums(self, offset=0):
-        """return the list of albums in the library"""
+        """Return the list of albums in the library."""
         return self.browse_by_path(["Library", "Albums"], offset=offset)
 
     def tracks(self, offset=0):
-        """return the list of tracks in the library"""
+        """Return the list of tracks in the library."""
         return self.browse_by_path(["Library", "Tracks"], offset=offset)
 
     def tags(self, offset=0):
-        """return the list of tags in the library"""
+        """Return the list of tags in the library."""
         return self.browse_by_path(["Library", "Tags"], offset=offset)
 
     def genres(self, subgenres_for="", offset=0):
-        """return the list of genres in the library"""
+        """Return the list of genres in the library."""
         return self.browse_by_path(["Genres", subgenres_for], offset=offset)
 
     def play_playlist(self, zone_or_output_id, playlist_title, shuffle=False):
-        """ play playlist by name on the specified zone"""
+        """Play playlist by name on the specified zone."""
         play_action = "Shuffle" if shuffle else "Play Now"
         return self.browse_by_path(
             ["Playlists", playlist_title, "Play Playlist", play_action],
@@ -450,19 +473,19 @@ class RoonApi:
         )
 
     def queue_playlist(self, zone_or_output_id, playlist_title):
-        """ queue playlist by name on the specified zone"""
+        """Queue playlist by name on the specified zone."""
         return self.browse_by_path(
             ["Playlists", playlist_title, "Play Playlist", "Queue"], zone_or_output_id
         )
 
     def play_radio(self, zone_or_output_id, radio_title):
-        """ play internet radio by name on the specified zone"""
+        """Play internet radio by name on the specified zone."""
         return self.browse_by_path(
             ["Internet Radio", radio_title, "Play Radio", "Play Now"], zone_or_output_id
         )
 
     def play_genre(self, zone_or_output_id, genre_name, subgenre="", shuffle=False):
-        """play specified genre on the specified zone"""
+        """Play specified genre on the specified zone."""
         action = "Shuffle" if shuffle else "Play Genre"
         if subgenre:
             return self.browse_by_path(
@@ -541,16 +564,17 @@ class RoonApi:
             )
 
     def search_artists(self, search_input):
-        """ search for artists by name"""
+        """Search for artists by name."""
         return self.browse_by_path(
             ["Library", "Search", "Artists"], search_input=search_input
         )
 
-    ############# private methods ##################
+    # private methods
 
     def __init__(self, appinfo, token=None, host=None, port=9100, blocking_init=True):
         """
-        Set up the connection with Roon
+        Set up the connection with Roon.
+
         appinfo: a dict of the required information about the app that should be connected to the api
         token: used for presistant storage of the auth token, will be set to token attribute if retrieved. You should handle saving of the key yourself
         host: optional the ip or hostname of the Roon server, will be auto discovered if ommitted
@@ -579,12 +603,15 @@ class RoonApi:
         th.start()
 
     def __exit__(self, type, value, tb):
+        """Stop socket and discovery on exit."""
         self.stop()
 
     def __enter__(self):
+        """Just return self on entry."""
         return self
 
     def stop(self):
+        """Stop socket and discovery."""
         self._exit = True
         if self._roondiscovery:
             self._roondiscovery.stop()
@@ -592,7 +619,7 @@ class RoonApi:
             self._roonsocket.stop()
 
     def _server_discovered(self, host, port):
-        """ called when the roon server is (auto) discovered on the network"""
+        """(Auto) discovered the roon server on the network."""
         LOGGER.info("Connecting to Roon server %s:%s" % (host, port))
         ws_address = "ws://%s:%s/api" % (host, port)
         self._host = host
@@ -605,7 +632,7 @@ class RoonApi:
         self._roonsocket.start()
 
     def _socket_connected(self):
-        """ the websocket connection is connected successfully"""
+        """Successfully connected the websocket."""
         LOGGER.info("Connection with roon websockets (re)created.")
         self.ready = False
         self._source_controls_request_id = None
@@ -639,7 +666,7 @@ class RoonApi:
         self.ready = True
 
     def _on_state_change(self, msg):
-        """ process messages we receive from the roon websocket into a more usable format"""
+        """Process messages we receive from the roon websocket into a more usable format."""
         events = []
         if not msg or not isinstance(msg, dict):
             return
@@ -721,7 +748,7 @@ class RoonApi:
         return zones
 
     def _request(self, command, data=None):
-        """ send command and wait for result """
+        """Send command and wait for result."""
         if not self._roonsocket:
             retries = 20
             while (not self.ready or not self._roonsocket) and retries:
@@ -748,7 +775,7 @@ class RoonApi:
         return result
 
     def _on_source_control_request(self, event, request_id, data):
-        """ got request from roon server for a source control registered on this endpoint"""
+        """Got request from roon server for a source control registered on this endpoint."""
         if event == "subscribe_controls":
             LOGGER.debug("found subscription ID for source controls: %s " % request_id)
             self._roonsocket.send_continue(request_id, {"controls_added": []})
@@ -769,7 +796,7 @@ class RoonApi:
                 self._roonsocket.send_complete(request_id, "Error")
 
     def _on_volume_control_request(self, event, request_id, data):
-        """ got request from roon server for a volume control registered on this endpoint"""
+        """Got request from roon server for a volume control registered on this endpoint."""
         if event == "subscribe_controls":
             LOGGER.debug("found subscription ID for volume controls: %s " % request_id)
             # send all volume controls already registered (handle connection loss)
@@ -804,7 +831,7 @@ class RoonApi:
                 self._roonsocket.send_complete(request_id, "Error")
 
     def _socket_watcher(self):
-        """ monitor the connection state of the socket and reconnect if needed"""
+        """Monitor the connection state of the socket and reconnect if needed."""
         while not self._exit:
             if self._roonsocket and self._roonsocket.failed_state:
                 LOGGER.warning("Socket connection lost! Will try to reconnect in 20s")
