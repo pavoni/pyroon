@@ -28,24 +28,31 @@ with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
 
     # Test basic zone fetching
     zones = [zone["display_name"] for zone in roonapi.zones.values()]
-    assert(len(zones) == 6)
-    assert(zones == ['Hi Fi', 'Bedroom', 'Study', 'Shower', 'Kitchen', 'Mixing Speakers'])
+    assert len(zones) == 6
+    assert zones == [
+        "Hi Fi",
+        "Bedroom",
+        "Study",
+        "Shower",
+        "Kitchen",
+        "Mixing Speakers",
+    ]
 
     # Test basic output fetching
     output_count = len(roonapi.outputs)
-    assert(output_count == 6)
+    assert output_count == 6
 
     # Test basic browsing
     result = roonapi.browse_by_path([])
-    assert(list(result) == ['items', 'offset', 'list'])
+    assert list(result) == ["items", "offset", "list"]
 
     headers = [item["title"] for item in result["items"]]
 
-    assert 'Library' in headers
-    assert 'Playlists' in headers
-    assert 'Internet Radio' in headers
-    assert 'Genres' in headers
-    assert 'Settings' in headers
+    assert "Library" in headers
+    assert "Playlists" in headers
+    assert "Internet Radio" in headers
+    assert "Genres" in headers
+    assert "Settings" in headers
 
     # print(" ###### main menu browse ######")
     # # items at first level (mainmenu items)
