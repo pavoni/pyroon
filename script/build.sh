@@ -30,16 +30,6 @@ pip install black
 
 
 echo
-echo "===Sorting imports==="
-ISORT_ARGS="--apply"
-if [[ "${CI:-}" = "1" ]]; then
-  ISORT_ARGS="--check-only"
-fi
-
-isort $ISORT_ARGS
-
-
-echo
 echo "===Formatting code==="
 if [[ `which black` ]]; then
   BLACK_ARGS=""
