@@ -36,7 +36,7 @@ if [[ "${CI:-}" = "1" ]]; then
   ISORT_ARGS="--check-only"
 fi
 
-# isort $ISORT_ARGS
+isort $ISORT_ARGS
 
 
 echo
@@ -44,10 +44,9 @@ echo "===Formatting code==="
 if [[ `which black` ]]; then
   BLACK_ARGS=""
   if [[ "${CI:-}" = "1" ]]; then
-    BLACK_ARGS="--check --exclude ouimeaux_device"
+    BLACK_ARGS="--check"
   fi
 
-# SQLDiablo 2020-09-08: Disabling black until we can get it to play nice with the other linters
  black $BLACK_ARGS .
 else
   echo "Warning: Skipping code formatting. You should use python >= 3.6."

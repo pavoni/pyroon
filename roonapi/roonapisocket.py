@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
+
 import threading
+
 import websocket
+
 from .constants import LOGGER, ControlSource, ControlVolume, ServicePing
 
 try:

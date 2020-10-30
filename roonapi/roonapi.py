@@ -1,16 +1,18 @@
 from __future__ import unicode_literals
-import time
+
 import threading
+import time
+
 from .constants import (
-    ServiceBrowse,
-    ControlVolume,
-    ControlSource,
-    ServiceTransport,
-    ServiceRegistry,
     LOGGER,
+    ControlSource,
+    ControlVolume,
+    ServiceBrowse,
+    ServiceRegistry,
+    ServiceTransport,
 )
-from .roonapisocket import RoonApiWebSocket
 from .discovery import RoonDiscovery
+from .roonapisocket import RoonApiWebSocket
 
 
 class RoonApi:  # pylint: disable=too-many-instance-attributes
