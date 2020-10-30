@@ -3,8 +3,14 @@ from __future__ import unicode_literals
 import threading
 import time
 
-from .constants import (LOGGER, ControlSource, ControlVolume, ServiceBrowse,
-                        ServiceRegistry, ServiceTransport)
+from .constants import (
+    LOGGER,
+    ControlSource,
+    ControlVolume,
+    ServiceBrowse,
+    ServiceRegistry,
+    ServiceTransport,
+)
 from .discovery import RoonDiscovery
 from .roonapisocket import RoonApiWebSocket
 
