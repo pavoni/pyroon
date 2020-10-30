@@ -5,3 +5,5 @@ roontoken.txt
 dist/
 roonapi.egg-info/
 .venv
+venv
+mytokenfile

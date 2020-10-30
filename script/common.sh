@@ -1,6 +1,6 @@
 VENV_DIR=".venv"
 PYTHON_BIN="python3"
-LINT_PATHS="./roon"
+LINT_PATHS="./roonapi"
 
 function assertPython() {
   if ! [[ $(which "$PYTHON_BIN") ]]; then

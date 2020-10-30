@@ -13,16 +13,18 @@ from .soodmessage import SOODMessage, FormatException
 
 class RoonDiscovery(threading.Thread):
     """Class to discover Roon Servers connected in the network."""
+
     _exit = threading.Event()
     _discovered_callback = None
 
     def __init__(self, callback):
+        """Discover Roon Servers connected in the network."""
         self._discovered_callback = callback
         threading.Thread.__init__(self)
         self.daemon = True
 
     def run(self):
-        ''' run discovery until server found '''
+        """Run discovery until server found."""
         while not self._exit.isSet():
             host, port = self.first()
             if host:
@@ -30,6 +32,7 @@ class RoonDiscovery(threading.Thread):
                 self.stop()
 
     def stop(self):
+        """Stop scan."""
         self._exit.set()
 
     def all(self):
@@ -37,12 +40,12 @@ class RoonDiscovery(threading.Thread):
         self._discover(first_only=False)
 
     def first(self):
-        ''' returns first server that is found'''
+        """Return first server that is found."""
         all_servers = self._discover(first_only=True)
         return all_servers[0] if all_servers else (None, None)
 
     def _discover(self, first_only=False):
-        """update the server entry with details"""
+        """Update the server entry with details."""
         this_dir = os.path.dirname(os.path.abspath(__file__))
         sood_file = os.path.join(this_dir, ".soodmsg")
         with open(sood_file) as sood_query_file:
@@ -52,8 +55,8 @@ class RoonDiscovery(threading.Thread):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.settimeout(5)
-            sock.bind(('', 0))
-            sock.sendto(msg, ('<broadcast>', 9003))
+            sock.bind(("", 0))
+            sock.sendto(msg, ("<broadcast>", 9003))
             while not self._exit.isSet():
                 try:
                     data, server = sock.recvfrom(1024)

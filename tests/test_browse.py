@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-''' some basic functions to test on the roon api'''
+""" some basic functions to test on the roon api"""
 
 import os.path
-import sys 
+import sys
 import time
-from roon import RoonApi   
+from roon import RoonApi
 
 
 token = None
@@ -15,12 +15,12 @@ if os.path.isfile("roontoken.txt"):
         token = f.read()
 
 appinfo = {
-        "extension_id": "python_roon_test",
-        "display_name": "Python library for Roon",
-        "display_version": "1.0.0",
-        "publisher": "marcelveldt",
-        "email": "my@email.com"
-    }
+    "extension_id": "python_roon_test",
+    "display_name": "Python library for Roon",
+    "display_version": "1.0.0",
+    "publisher": "marcelveldt",
+    "email": "my@email.com",
+}
 
 with RoonApi(appinfo, token, blocking_init=True) as roonapi:
 
@@ -60,7 +60,6 @@ with RoonApi(appinfo, token, blocking_init=True) as roonapi:
     # items = roonapi.artists()
     # print("number of artists: %s" % items["list"]["count"])
 
-
     # print(" ###### albums ######")
     # items = roonapi.albums()
     # print("number of albums: %s" % items["list"]["count"])
@@ -86,7 +85,6 @@ with RoonApi(appinfo, token, blocking_init=True) as roonapi:
 
     # # play genre
     # roonapi.play_genre(zone_id, "Pop/Rock")
-
 
     # save token
     token = roonapi.token

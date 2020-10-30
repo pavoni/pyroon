@@ -48,7 +48,7 @@ if [[ `which black` ]]; then
   fi
 
 # SQLDiablo 2020-09-08: Disabling black until we can get it to play nice with the other linters
-#  black $BLACK_ARGS .
+ black $BLACK_ARGS .
 else
   echo "Warning: Skipping code formatting. You should use python >= 3.6."
 fi
@@ -56,11 +56,11 @@ fi
 
 echo
 echo "===Lint with flake8==="
-# flake8
+flake8
 
 echo
 echo "===Lint with pylint==="
-# pylint $LINT_PATHS
+pylint $LINT_PATHS
 
 # Test require a roon core server install locally
 # echo
