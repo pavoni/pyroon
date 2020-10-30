@@ -19,23 +19,26 @@ class RoonApiWebSocket(
 ):  # pylint: disable=too-many-instance-attributes
     """Class to handle the roon websocket connection."""
 
-    _socket = None
-    _results = {}
-    _requestid = 10  # initial request_id of 10 to prevent confusion with the requests that are sent by the server at initialization
-    _subkey = 0
-    _exit = False
-    _subscriptions = {}
-    source_controls_callback = None
-    volume_controls_callback = None
-    connected_callback = None
-    registered_calback = None
-    connected = False
-    failed_state = False
-
     @property
     def results(self):
         """Return the result of the previous request."""
         return self._results
+
+    def register_connected_callback(self, callback):
+        """To be called on connection."""
+        self._connected_callback = callback
+
+    def register_registered_calback(self, callback):
+        """To be called on registration."""
+        self._registered_calback = callback
+
+    def register_source_controls_callback(self, callback):
+        """To be called on source changes."""
+        self._volume_controls_callback = callback
+
+    def register_volume_controls_callback(self, callback):
+        """To be called on volume changes."""
+        self._volume_controls_callback = callback
 
     def run(self):
         """Start the socket thread."""
@@ -59,6 +62,21 @@ class RoonApiWebSocket(
 
     def __init__(self, host):
         """Create the websocket connection to the roon server."""
+
+        self._socket = None
+        self._results = {}
+        self._requestid = 10  # initial request_id of 10 to prevent confusion with the requests that are sent by the server at initialization
+        self._subkey = 0
+        self._exit = False
+        self._subscriptions = {}
+        self.connected = False
+        self.failed_state = False
+
+        self._connected_callback = lambda: None
+        self._registered_calback = lambda _: None
+        self._source_controls_callback = lambda _a, _b, _c: None
+        self._volume_controls_callback = lambda _a, _b, _c: None
+
         self._socket = websocket.WebSocketApp(
             host,
             on_message=self.on_message,
@@ -123,26 +141,16 @@ class RoonApiWebSocket(
             if ControlSource in header:
                 # incoming message for source_control endpoint
                 event = header.split("/")[-1]
-                # pylint: disable=using-constant-test
-                if self.source_controls_callback:
-                    self.source_controls_callback(
-                        event, request_id, body
-                    )  # pylint: disable=not-callable
+                self._source_controls_callback(event, request_id, body)
             elif ControlVolume in header:
                 # incoming message for volume_control endpoint
                 event = header.split("/")[-1]
-                # pylint: disable=using-constant-test
-                if self.volume_controls_callback:
-                    self.volume_controls_callback(
-                        event, request_id, body
-                    )  # pylint: disable=not-callable
+                self._volume_controls_callback(event, request_id, body)
             elif ServicePing in header:
                 # reply to incoming ping from server
                 self.send_complete(request_id, "Success")
             elif "Registered" in header:
-                # pylint: disable=using-constant-test
-                if self.registered_calback:
-                    self.registered_calback(body)  # pylint: disable=not-callable
+                self._registered_calback(body)
             elif request_id in self._subscriptions:
                 # this is callback for one of our subscriptions
                 self._subscriptions[request_id]["callback"](body)
@@ -174,9 +182,7 @@ class RoonApiWebSocket(
         """Handle opening the session."""
         LOGGER.debug("Opened Websocket connection to the server...")
         self.connected = True
-        # pylint: disable=using-constant-test
-        if self.connected_callback:
-            thread.start_new_thread(self.connected_callback, ())
+        thread.start_new_thread(self._connected_callback, ())
 
     def send_continue(self, request_id, body):
         """Send continue message if socket open."""
