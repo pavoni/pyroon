@@ -1,16 +1,18 @@
 from __future__ import unicode_literals
-import time
+
 import threading
+import time
+
 from .constants import (
-    ServiceBrowse,
-    ControlVolume,
-    ControlSource,
-    ServiceTransport,
-    ServiceRegistry,
     LOGGER,
+    ControlSource,
+    ControlVolume,
+    ServiceBrowse,
+    ServiceRegistry,
+    ServiceTransport,
 )
-from .roonapisocket import RoonApiWebSocket
 from .discovery import RoonDiscovery
+from .roonapisocket import RoonApiWebSocket
 
 
 class RoonApi:  # pylint: disable=too-many-instance-attributes
@@ -639,10 +641,16 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         self._host = host
         self._port = port
         self._roonsocket = RoonApiWebSocket(ws_address)
-        self._roonsocket.source_controls_callback = self._on_source_control_request
-        self._roonsocket.volume_controls_callback = self._on_volume_control_request
-        self._roonsocket.connected_callback = self._socket_connected
-        self._roonsocket.registered_calback = self._server_registered
+
+        self._roonsocket.register_connected_callback(self._socket_connected)
+        self._roonsocket.register_registered_calback(self._server_registered)
+        self._roonsocket.register_source_controls_callback(
+            self._on_source_control_request
+        )
+        self._roonsocket.register_volume_controls_callback(
+            self._on_volume_control_request
+        )
+
         self._roonsocket.start()
 
     def _socket_connected(self):
@@ -791,6 +799,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def _on_source_control_request(self, event, request_id, data):
         """Got request from roon server for a source control registered on this endpoint."""
+        LOGGER.debug("_on_source_control_request")
         if event == "subscribe_controls":
             LOGGER.debug("found subscription ID for source controls: %s " % request_id)
             self._roonsocket.send_continue(request_id, {"controls_added": []})
@@ -812,6 +821,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def _on_volume_control_request(self, event, request_id, data):
         """Got request from roon server for a volume control registered on this endpoint."""
+        LOGGER.debug("_on_volume_control_request")
         if event == "subscribe_controls":
             LOGGER.debug("found subscription ID for volume controls: %s " % request_id)
             # send all volume controls already registered (handle connection loss)

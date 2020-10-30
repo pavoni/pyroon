@@ -5,10 +5,11 @@ If multiple servers are available on the network, the first to be discovered
 is selected. This may not be the one you have enabled the plugin for.
 """
 
-import threading
-import socket
 import os.path
-from .soodmessage import SOODMessage, FormatException
+import socket
+import threading
+
+from .soodmessage import FormatException, SOODMessage
 
 
 class RoonDiscovery(threading.Thread):
