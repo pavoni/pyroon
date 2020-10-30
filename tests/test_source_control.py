@@ -3,12 +3,13 @@
 
 """ some basic functions to test on the roon api"""
 
+import logging
 import os.path
 import signal
 import sys
 import time
-from roonapi import RoonApi
 
+from roonapi import RoonApi
 
 token = None
 if os.path.isfile("roontoken.txt"):
@@ -19,15 +20,18 @@ appinfo = {
     "extension_id": "python_roon_test",
     "display_name": "Python library for Roon",
     "display_version": "1.0.0",
-    "publisher": "marcelveldt",
+    "publisher": "pavoni",
     "email": "my@email.com",
 }
 
-import logging
+host = "192.168.1.160"
 
-logging.getLogger("roonapi").setLevel(logging.DEBUG)
+
+LOGGER = logging.getLogger("roonapi")
+
+LOGGER.setLevel(logging.DEBUG)
 # initialize Roon api and register the callback for state changes
-roonapi = RoonApi(appinfo, token)
+roonapi = RoonApi(appinfo, token, host)
 
 # callback will be called when we register for state events
 def state_callback(event, changed_items):

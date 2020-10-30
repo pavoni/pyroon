@@ -7,8 +7,8 @@ import os.path
 import signal
 import sys
 import time
-from roonapi import RoonApi
 
+from roonapi import RoonApi
 
 token = None
 if os.path.isfile("roontoken.txt"):
@@ -19,17 +19,20 @@ appinfo = {
     "extension_id": "python_roon_test",
     "display_name": "Python library for Roon",
     "display_version": "1.0.0",
-    "publisher": "marcelveldt",
+    "publisher": "pavoni",
     "email": "my@email.com",
 }
+
+host = "192.168.1.160"
 
 # callback will be called when we register for state events
 def state_callback(event, changed_items):
     print("%s: %s" % (event, changed_items))
 
 
+host = "192.168.1.160"
 # initialize Roon api and register the callback for state changes
-roonapi = RoonApi(appinfo, token)
+roonapi = RoonApi(appinfo, token, host)
 roonapi.register_state_callback(state_callback)
 
 time.sleep(5)

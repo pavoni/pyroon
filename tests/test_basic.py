@@ -6,8 +6,8 @@
 import os.path
 import sys
 import time
-from roon import RoonApi
 
+from roonapi import RoonApi
 
 token = None
 if os.path.isfile("roontoken.txt"):
@@ -18,18 +18,34 @@ appinfo = {
     "extension_id": "python_roon_test",
     "display_name": "Python library for Roon",
     "display_version": "1.0.0",
-    "publisher": "marcelveldt",
+    "publisher": "pavoni",
     "email": "my@email.com",
 }
 
-with RoonApi(appinfo, token, blocking_init=True) as roonapi:
+host = "192.168.1.160"
 
-    output_id = roonapi.output_by_name("boven")["output_id"]
-    roonapi.play_playlist(output_id, "Marcel/Silvia - van alles wat")
-    roonapi.queue_playlist(output_id, "Spotify: Christmas Top 101 - Kerstmuziek")
-    roonapi.queue_playlist(output_id, "Spotify: Christmas Top 101 - Kerstmuziek")
-    roonapi.queue_playlist(output_id, "Spotify: Christmas Top 101 - Kerstmuziek")
-    roonapi.shuffle(output_id)
+with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
+
+    # Test basic zone fetching
+    zones = [zone["display_name"] for zone in roonapi.zones.values()]
+    assert(len(zones) == 6)
+    assert(zones == ['Hi Fi', 'Bedroom', 'Study', 'Shower', 'Kitchen', 'Mixing Speakers'])
+
+    # Test basic output fetching
+    output_count = len(roonapi.outputs)
+    assert(output_count == 6)
+
+    # Test basic browsing
+    result = roonapi.browse_by_path([])
+    assert(list(result) == ['items', 'offset', 'list'])
+
+    headers = [item["title"] for item in result["items"]]
+
+    assert 'Library' in headers
+    assert 'Playlists' in headers
+    assert 'Internet Radio' in headers
+    assert 'Genres' in headers
+    assert 'Settings' in headers
 
     # print(" ###### main menu browse ######")
     # # items at first level (mainmenu items)
