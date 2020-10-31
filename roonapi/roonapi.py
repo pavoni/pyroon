@@ -788,6 +788,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         except KeyError:
             pass
         return result
+
     def _socket_watcher(self):
         """Monitor the connection state of the socket and reconnect if needed."""
         while not self._exit:

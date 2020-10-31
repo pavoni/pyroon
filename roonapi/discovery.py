@@ -12,10 +12,14 @@ import threading
 from .soodmessage import FormatException, SOODMessage
 from .constants import SOOD_PORT, SOOD_MULTICAST_IP, LOGGER
 
+
 def local_ip():
     """Get the local ip addresses (so they can be excluded."""
-    addresses = socket.getaddrinfo(socket.gethostname(), None, family=socket.AF_INET, proto=socket.IPPROTO_UDP)
+    addresses = socket.getaddrinfo(
+        socket.gethostname(), None, family=socket.AF_INET, proto=socket.IPPROTO_UDP
+    )
     return {ad[4][0] for ad in addresses}
+
 
 class RoonDiscovery(threading.Thread):
     """Class to discover Roon Servers connected in the network."""
@@ -60,7 +64,9 @@ class RoonDiscovery(threading.Thread):
         msg = msg.encode()
         entries = []
 
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) as sock:
+        with socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP
+        ) as sock:
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
             sock.settimeout(5)
             sock.sendto(msg, (SOOD_MULTICAST_IP, SOOD_PORT))
@@ -73,7 +79,10 @@ class RoonDiscovery(threading.Thread):
                     host = server[0]
                     port = message["properties"]["http_port"]
                     if exclude_self and host in own_ip:
-                        LOGGER.debug("Ignoring server with address %s, because it's on this machine", host)
+                        LOGGER.debug(
+                            "Ignoring server with address %s, because it's on this machine",
+                            host,
+                        )
                         continue
                     entries.append((host, port))
                     if first_only:

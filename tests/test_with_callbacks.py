@@ -38,7 +38,9 @@ roonapi = RoonApi(appinfo, token, host)
 
 roonapi.register_state_callback(state_callback)
 
-zones = [zone for zone in roonapi.zones.values() if zone["display_name"] == "Mixing Speakers"]
+zones = [
+    zone for zone in roonapi.zones.values() if zone["display_name"] == "Mixing Speakers"
+]
 
 assert len(zones) == 1
 
@@ -50,13 +52,13 @@ assert events == []
 
 roonapi.change_volume(test_output_id, 1, method="relative")
 assert callback_count == 2
-assert events == ['zones_changed', 'outputs_changed']
+assert events == ["zones_changed", "outputs_changed"]
 
 events = []
 
 roonapi.change_volume(test_output_id, -1, method="relative")
 assert callback_count == 4
-assert events == ['zones_changed', 'outputs_changed']
+assert events == ["zones_changed", "outputs_changed"]
 
 roonapi.stop()
 token = roonapi.token

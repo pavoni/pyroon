@@ -122,9 +122,7 @@ class RoonApiWebSocket(
     def on_message(self, w_socket, message=None):
         """Handle message callback."""
         if not message:
-            message = (
-                w_socket  # compatability fix because of change in websocket-client v0.49
-            )
+            message = w_socket  # compatability fix because of change in websocket-client v0.49
         try:
             message = message.decode("utf-8")
             lines = message.split("\n")
