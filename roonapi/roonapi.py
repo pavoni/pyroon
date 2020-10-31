@@ -37,6 +37,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return self._token
 
     @property
+    def host(self):
+        """Return the roon host."""
+        return self._host
+
+    @property
     def zones(self):
         """Return All zones as a dict."""
         return self._zones
