@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" some basic functions to test on the roon api"""
+"""Some basic functions to test the roon api."""
 
 import os.path
 
@@ -20,9 +20,8 @@ appinfo = {
     "email": "my@email.com",
 }
 
-host = "192.168.1.160"
-
-with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
+# with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
+with RoonApi(appinfo, token, None, blocking_init=True) as roonapi:
 
     # Test basic zone fetching
     zones = [zone["display_name"] for zone in roonapi.zones.values()]
@@ -110,6 +109,8 @@ with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
 
     # save token
     token = roonapi.token
-    print("Saving token: %s" % token)
-    with open("roon_test_token.txt", "w") as f:
-        f.write(token)
+    roonapi.stop()
+
+print("Saving token: %s" % token)
+with open("roon_test_token.txt", "w") as f:
+    f.write(token)
