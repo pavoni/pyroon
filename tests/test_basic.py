@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" some basic functions to test on the roon api"""
+"""Some basic functions to test the roon api."""
 
 import os.path
-import sys
-import time
 
 from roonapi import RoonApi
 
 token = None
-if os.path.isfile("roontoken.txt"):
-    with open("roontoken.txt") as f:
+if os.path.isfile("roon_test_token.txt"):
+    with open("roon_test_token.txt") as f:
         token = f.read()
 
 appinfo = {
@@ -22,20 +20,20 @@ appinfo = {
     "email": "my@email.com",
 }
 
-host = "192.168.1.160"
-
-with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
+# with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
+with RoonApi(appinfo, token, None, blocking_init=True) as roonapi:
 
     # Test basic zone fetching
     zones = [zone["display_name"] for zone in roonapi.zones.values()]
+    zones.sort()
     assert len(zones) == 6
     assert zones == [
-        "Hi Fi",
         "Bedroom",
-        "Study",
-        "Shower",
+        "Hi Fi",
         "Kitchen",
         "Mixing Speakers",
+        "Shower",
+        "Study",
     ]
 
     # Test basic output fetching
@@ -111,6 +109,8 @@ with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
 
     # save token
     token = roonapi.token
-    print("token: %s" % token)
-    with open("roontoken.txt", "w") as f:
-        f.write(token)
+    roonapi.stop()
+
+print("Saving token: %s" % token)
+with open("roon_test_token.txt", "w") as f:
+    f.write(token)

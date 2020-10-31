@@ -10,6 +10,15 @@ import socket
 import threading
 
 from .soodmessage import FormatException, SOODMessage
+from .constants import SOOD_PORT, SOOD_MULTICAST_IP, LOGGER
+
+
+def local_ip():
+    """Get the local ip addresses (so they can be excluded."""
+    addresses = socket.getaddrinfo(
+        socket.gethostname(), None, family=socket.AF_INET, proto=socket.IPPROTO_UDP
+    )
+    return {ad[4][0] for ad in addresses}
 
 
 class RoonDiscovery(threading.Thread):
@@ -45,7 +54,8 @@ class RoonDiscovery(threading.Thread):
         all_servers = self._discover(first_only=True)
         return all_servers[0] if all_servers else (None, None)
 
-    def _discover(self, first_only=False):
+    # pylint: disable=too-many-locals
+    def _discover(self, first_only=False, exclude_self=True):
         """Update the server entry with details."""
         this_dir = os.path.dirname(os.path.abspath(__file__))
         sood_file = os.path.join(this_dir, ".soodmsg")
@@ -53,25 +63,35 @@ class RoonDiscovery(threading.Thread):
             msg = sood_query_file.read()
         msg = msg.encode()
         entries = []
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        with socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP
+        ) as sock:
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
             sock.settimeout(5)
-            sock.bind(("", 0))
-            sock.sendto(msg, ("<broadcast>", 9003))
+            sock.sendto(msg, (SOOD_MULTICAST_IP, SOOD_PORT))
+            own_ip = local_ip()
             while not self._exit.isSet():
                 try:
                     data, server = sock.recvfrom(1024)
                     message = SOODMessage(data).as_dictionary
+
                     host = server[0]
                     port = message["properties"]["http_port"]
+                    if exclude_self and host in own_ip:
+                        LOGGER.debug(
+                            "Ignoring server with address %s, because it's on this machine",
+                            host,
+                        )
+                        continue
                     entries.append((host, port))
                     if first_only:
                         # we're only interested in the first server found
                         break
                 except socket.timeout:
-                    print("timeout")
+                    LOGGER.info("Timeout")
                     break
                 except FormatException as format_exception:
-                    print(format_exception.message)
+                    LOGGER.error("Format exception %s", format_exception.message)
                     break
         return entries

@@ -26,7 +26,7 @@ poetry install
 # Test require a roon core server installed locally
 echo
 echo "===Test with pytest==="
-pytest -v -s tests/test_basic.py
+pytest -v -s
 
 echo
 echo "Test complete"
