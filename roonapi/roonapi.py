@@ -5,8 +5,6 @@ import time
 
 from .constants import (
     LOGGER,
-    CONTROL_SOURCE,
-    CONTROL_VOLUME,
     SERVICE_BROWSE,
     SERVICE_REGISTRY,
     SERVICE_TRANSPORT,
@@ -644,12 +642,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
         self._roonsocket.register_connected_callback(self._socket_connected)
         self._roonsocket.register_registered_calback(self._server_registered)
-        self._roonsocket.register_source_controls_callback(
-            self._on_source_control_request
-        )
-        self._roonsocket.register_volume_controls_callback(
-            self._on_volume_control_request
-        )
 
         self._roonsocket.start()
 
@@ -663,13 +655,13 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         # warning: at first launch the user has to approve the app in the Roon settings.
         appinfo = self._appinfo.copy()
         appinfo["required_services"] = [SERVICE_TRANSPORT, SERVICE_BROWSE]
-        appinfo["provided_services"] = [CONTROL_VOLUME, CONTROL_SOURCE]
+        appinfo["provided_services"] = []
         if self._token:
             appinfo["token"] = self._token
         if not self._token:
             LOGGER.info("The application should be approved within Roon's settings.")
         else:
-            LOGGER.info("Registering the app with Roon...")
+            LOGGER.info("Confirming previous registration with Roon...")
         self._roonsocket.send_request(SERVICE_REGISTRY + "/register", appinfo)
 
     def _server_registered(self, reginfo):
@@ -796,65 +788,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         except KeyError:
             pass
         return result
-
-    def _on_source_control_request(self, event, request_id, data):
-        """Got request from roon server for a source control registered on this endpoint."""
-        LOGGER.debug("_on_source_control_request")
-        if event == "subscribe_controls":
-            LOGGER.debug("found subscription ID for source controls: %s " % request_id)
-            self._roonsocket.send_continue(request_id, {"controls_added": []})
-            # send all source controls already registered (handle connection loss)
-            controls = []
-            for _, control_data in self._source_controls.values():
-                controls.append(control_data)
-            self._roonsocket.send_continue(request_id, {"controls_added": controls})
-            self._source_controls_request_id = request_id
-        elif data and data.get("control_key"):
-            control_key = data["control_key"]
-            try:
-                # launch callback
-                self._roonsocket.send_complete(request_id, "Success")
-                self._source_controls[control_key][0](control_key, event)
-            except Exception:  # pylint: disable=broad-except
-                LOGGER.exception("Error in source_control callback")
-                self._roonsocket.send_complete(request_id, "Error")
-
-    def _on_volume_control_request(self, event, request_id, data):
-        """Got request from roon server for a volume control registered on this endpoint."""
-        LOGGER.debug("_on_volume_control_request")
-        if event == "subscribe_controls":
-            LOGGER.debug("found subscription ID for volume controls: %s " % request_id)
-            # send all volume controls already registered (handle connection loss)
-            controls = []
-            for _, control_data in self._volume_controls.values():
-                controls.append(control_data)
-            self._roonsocket.send_continue(request_id, {"controls_added": controls})
-            self._source_controls_request_id = request_id
-            self._volume_controls_request_id = request_id
-        elif data and data.get("control_key"):
-            control_key = data["control_key"]
-            if event == "set_volume" and data["mode"] == "absolute":
-                value = data["value"]
-            elif event == "set_volume" and data["mode"] == "relative":
-                value = (
-                    self._volume_controls[control_key][0]["volume_value"]
-                    + data["value"]
-                )
-            elif event == "set_volume" and data["mode"] == "relative_step":
-                value = self._volume_controls[control_key][0]["volume_value"] + (
-                    data["value"] * data["volume_step"]
-                )
-            elif event == "set_mute":
-                value = data["mode"] == "on"
-            else:
-                return
-            try:
-                self._roonsocket.send_complete(request_id, "Success")
-                self._volume_controls[control_key][0](control_key, event, value)
-            except Exception:  # pylint: disable=broad-except
-                LOGGER.exception("Error in volume_control callback")
-                self._roonsocket.send_complete(request_id, "Error")
-
     def _socket_watcher(self):
         """Monitor the connection state of the socket and reconnect if needed."""
         while not self._exit:

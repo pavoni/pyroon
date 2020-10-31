@@ -1,7 +1,7 @@
 __pycache__
 .DS_Store
 build/
-roontoken.txt
+roon_test_token.txt
 dist/
 roonapi.egg-info/
 .venv

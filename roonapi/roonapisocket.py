@@ -169,7 +169,7 @@ class RoonApiWebSocket(
         """Handle error callback."""
         if not error:
             error = w_socket  # compatability fix because of change in websocket-client v0.49
-        LOGGER.error(error)
+        LOGGER.error("on_error %s", error)
 
     # pylint: disable=unused-argument
     def on_close(self, w_socket=None):

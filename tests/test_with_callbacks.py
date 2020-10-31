@@ -4,15 +4,12 @@
 """ some basic functions to test on the roon api"""
 
 import os.path
-import signal
-import sys
-import time
 
 from roonapi import RoonApi
 
 token = None
-if os.path.isfile("roontoken.txt"):
-    with open("roontoken.txt") as f:
+if os.path.isfile("roon_test_token.txt"):
+    with open("roon_test_token.txt") as f:
         token = f.read()
 
 appinfo = {
@@ -25,43 +22,46 @@ appinfo = {
 
 host = "192.168.1.160"
 
+callback_count = 0
+events = []
+
 # callback will be called when we register for state events
 def state_callback(event, changed_items):
+    global callback_count, events
+    callback_count += 1
+    events.append(event)
     print("%s: %s" % (event, changed_items))
-
 
 host = "192.168.1.160"
 # initialize Roon api and register the callback for state changes
 roonapi = RoonApi(appinfo, token, host)
 roonapi.register_state_callback(state_callback)
 
-time.sleep(5)
-# list all zones
-print(" ###### zones ######")
-for zone in roonapi.zones.values():
-    print(zone["display_name"])
+zones = [ zone for zone in roonapi.zones.values() if zone["display_name"] == "Mixing Speakers"]
 
-# list all outputs
-print("###### outputs ########")
-for output in roonapi.outputs.values():
-    print(output)
+assert len(zones) == 1
+
+test_zone = zones[0]
+test_output_id = test_zone["outputs"][0]["output_id"]
+
+assert callback_count == 0
+assert events == []
+
+roonapi.change_volume(test_output_id, 1, method="relative")
+assert callback_count == 2
+assert events == ['zones_changed', 'outputs_changed']
+
+events = []
+
+roonapi.change_volume(test_output_id, -1, method="relative")
+assert callback_count == 4
+assert events == ['zones_changed', 'outputs_changed']
+
+roonapi.stop()
+token = roonapi.token
+print("Saving token: %s" % token)
+if token:
+    with open("roon_test_token.txt", "w") as f:
+        f.write(token)
 
 
-# cleanup handler to properly close the connection and save the token for later use
-def cleanup(signum, frame):
-    roonapi.stop()
-    token = roonapi.token
-    print("token: %s" % token)
-    if token:
-        with open("roontoken.txt", "w") as f:
-            f.write(token)
-    sys.exit(signum)
-
-
-# signal handler
-for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
-    signal.signal(sig, cleanup)
-
-# keep it alive!
-while True:
-    time.sleep(1)

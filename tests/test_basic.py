@@ -4,14 +4,12 @@
 """ some basic functions to test on the roon api"""
 
 import os.path
-import sys
-import time
 
 from roonapi import RoonApi
 
 token = None
-if os.path.isfile("roontoken.txt"):
-    with open("roontoken.txt") as f:
+if os.path.isfile("roon_test_token.txt"):
+    with open("roon_test_token.txt") as f:
         token = f.read()
 
 appinfo = {
@@ -112,6 +110,6 @@ with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
 
     # save token
     token = roonapi.token
-    print("token: %s" % token)
-    with open("roontoken.txt", "w") as f:
+    print("Saving token: %s" % token)
+    with open("roon_test_token.txt", "w") as f:
         f.write(token)
