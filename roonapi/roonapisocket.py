@@ -4,7 +4,7 @@ import threading
 
 import websocket
 
-from .constants import LOGGER, ControlSource, ControlVolume, ServicePing
+from .constants import LOGGER, CONTROL_SOURCE, CONTROL_VOLUME, REGISTERED, SERVICE_PING
 
 try:
     import simplejson as json
@@ -119,11 +119,11 @@ class RoonApiWebSocket(
             del self._subscriptions[item[0]]
 
     # pylint: disable=too-many-branches
-    def on_message(self, ws, message=None):
+    def on_message(self, w_socket, message=None):
         """Handle message callback."""
         if not message:
             message = (
-                ws  # compatability fix because of change in websocket-client v0.49
+                w_socket  # compatability fix because of change in websocket-client v0.49
             )
         try:
             message = message.decode("utf-8")
@@ -141,18 +141,18 @@ class RoonApiWebSocket(
             if body and "{" in body:
                 body = json.loads(body)
             # handle message
-            if ControlSource in header:
+            if CONTROL_SOURCE in header:
                 # incoming message for source_control endpoint
                 event = header.split("/")[-1]
                 self._source_controls_callback(event, request_id, body)
-            elif ControlVolume in header:
+            elif CONTROL_VOLUME in header:
                 # incoming message for volume_control endpoint
                 event = header.split("/")[-1]
                 self._volume_controls_callback(event, request_id, body)
-            elif ServicePing in header:
+            elif SERVICE_PING in header:
                 # reply to incoming ping from server
                 self.send_complete(request_id, "Success")
-            elif "Registered" in header:
+            elif REGISTERED in header:
                 self._registered_calback(body)
             elif request_id in self._subscriptions:
                 # this is callback for one of our subscriptions
@@ -165,14 +165,14 @@ class RoonApiWebSocket(
             LOGGER.debug(message)
 
     # pylint: disable=no-self-use
-    def on_error(self, ws, error=None):
+    def on_error(self, w_socket, error=None):
         """Handle error callback."""
         if not error:
-            error = ws  # compatability fix because of change in websocket-client v0.49
+            error = w_socket  # compatability fix because of change in websocket-client v0.49
         LOGGER.error(error)
 
     # pylint: disable=unused-argument
-    def on_close(self, ws=None):
+    def on_close(self, w_socket=None):
         """Handle closing the session."""
         LOGGER.info("session closed")
         self.connected = False
@@ -181,7 +181,7 @@ class RoonApiWebSocket(
         self._subscriptions = {}
 
     # pylint: disable=unused-argument
-    def on_open(self, ws=None):
+    def on_open(self, w_socket=None):
         """Handle opening the session."""
         LOGGER.debug("Opened Websocket connection to the server...")
         self.connected = True

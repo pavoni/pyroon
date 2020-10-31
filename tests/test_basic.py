@@ -28,14 +28,15 @@ with RoonApi(appinfo, token, host, blocking_init=True) as roonapi:
 
     # Test basic zone fetching
     zones = [zone["display_name"] for zone in roonapi.zones.values()]
+    zones.sort()
     assert len(zones) == 6
     assert zones == [
-        "Hi Fi",
         "Bedroom",
-        "Study",
-        "Shower",
+        "Hi Fi",
         "Kitchen",
         "Mixing Speakers",
+        "Shower",
+        "Study",
     ]
 
     # Test basic output fetching

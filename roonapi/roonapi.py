@@ -5,11 +5,11 @@ import time
 
 from .constants import (
     LOGGER,
-    ControlSource,
-    ControlVolume,
-    ServiceBrowse,
-    ServiceRegistry,
-    ServiceTransport,
+    CONTROL_SOURCE,
+    CONTROL_VOLUME,
+    SERVICE_BROWSE,
+    SERVICE_REGISTRY,
+    SERVICE_TRANSPORT,
 )
 from .discovery import RoonDiscovery
 from .roonapisocket import RoonApiWebSocket
@@ -121,7 +121,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                  * "next" - Advance to the next track
         """
         data = {"zone_or_output_id": zone_or_output_id, "control": control}
-        return self._request(ServiceTransport + "/control", data)
+        return self._request(SERVICE_TRANSPORT + "/control", data)
 
     def standby(self, output_id, control_key=None):
         """
@@ -135,7 +135,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                          standby will be put into standby.
         """
         data = {"output_id": output_id, "control_key": control_key}
-        return self._request(ServiceTransport + "/standby", data)
+        return self._request(SERVICE_TRANSPORT + "/standby", data)
 
     def convenience_switch(self, output_id, control_key=None):
         """
@@ -147,7 +147,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                          If omitted, then all controls on this output will be convenience switched.
         """
         data = {"output_id": output_id, "control_key": control_key}
-        return self._request(ServiceTransport + "/convenience_switch", data)
+        return self._request(SERVICE_TRANSPORT + "/convenience_switch", data)
 
     def mute(self, output_id, mute=True):
         """
@@ -159,7 +159,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         """
         how = "mute" if mute else "unmute"
         data = {"output_id": output_id, "how": how}
-        return self._request(ServiceTransport + "/mute", data)
+        return self._request(SERVICE_TRANSPORT + "/mute", data)
 
     def change_volume(self, output_id, value, method="absolute"):
         """
@@ -182,7 +182,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 if self._outputs[output_id]["volume"]["type"] == "db":
                     value = int((float(value) / 100) * 80) - 80
             data = {"output_id": output_id, "how": method, "value": value}
-            return self._request(ServiceTransport + "/change_volume", data)
+            return self._request(SERVICE_TRANSPORT + "/change_volume", data)
         except Exception as exc:  # pylint: disable=broad-except
             LOGGER.error("set_volume_level failed for entity %s.", str(exc))
             return None
@@ -201,7 +201,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             "how": method,
             "seconds": seconds,
         }
-        return self._request(ServiceTransport + "/seek", data)
+        return self._request(SERVICE_TRANSPORT + "/seek", data)
 
     def shuffle(self, zone_or_output_id, shuffle=True):
         """
@@ -212,7 +212,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             shuffle: bool if shuffle should be enabled. False will disable shuffle
         """
         data = {"zone_or_output_id": zone_or_output_id, "shuffle": shuffle}
-        return self._request(ServiceTransport + "/change_settings", data)
+        return self._request(SERVICE_TRANSPORT + "/change_settings", data)
 
     def repeat(self, zone_or_output_id, repeat=True):
         """
@@ -224,7 +224,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         """
         loop = "loop" if repeat else "disabled"
         data = {"zone_or_output_id": zone_or_output_id, "loop": loop}
-        return self._request(ServiceTransport + "/change_settings", data)
+        return self._request(SERVICE_TRANSPORT + "/change_settings", data)
 
     def transfer_zone(self, from_zone_or_output_id, to_zone_or_output_id):
         """
@@ -238,7 +238,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             "from_zone_or_output_id": from_zone_or_output_id,
             "to_zone_or_output_id": to_zone_or_output_id,
         }
-        return self._request(ServiceTransport + "/transfer_zone", data)
+        return self._request(SERVICE_TRANSPORT + "/transfer_zone", data)
 
     def group_outputs(self, output_ids):
         """
@@ -248,7 +248,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             output_ids - The outputs to group. The first output's zone's queue is preserved.
         """
         data = {"output_ids": output_ids}
-        return self._request(ServiceTransport + "/group_outputs", data)
+        return self._request(SERVICE_TRANSPORT + "/group_outputs", data)
 
     def ungroup_outputs(self, output_ids):
         """
@@ -258,7 +258,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             output_ids - The outputs to ungroup.
         """
         data = {"output_ids": output_ids}
-        return self._request(ServiceTransport + "/ungroup_outputs", data)
+        return self._request(SERVICE_TRANSPORT + "/ungroup_outputs", data)
 
     # pylint: disable=too-many-arguments
     def register_source_control(
@@ -375,7 +375,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             opt_data = {"zone_or_output_id": zone_or_output_id}
         else:
             opt_data = None
-        self._roonsocket.subscribe(ServiceTransport, "queue", callback, opt_data)
+        self._roonsocket.subscribe(SERVICE_TRANSPORT, "queue", callback, opt_data)
 
     def browse_browse(self, opts):
         """
@@ -383,7 +383,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
-        return self._request(ServiceBrowse + "/browse", opts)
+        return self._request(SERVICE_BROWSE + "/browse", opts)
 
     def browse_load(self, opts):
         """
@@ -391,7 +391,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
-        return self._request(ServiceBrowse + "/load", opts)
+        return self._request(SERVICE_BROWSE + "/load", opts)
 
     def browse_pop_all(self, opts):
         """
@@ -399,7 +399,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
-        return self._request(ServiceBrowse + "/pop_all", opts)
+        return self._request(SERVICE_BROWSE + "/pop_all", opts)
 
     def browse_pop(self, opts):
         """
@@ -407,7 +407,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
-        return self._request(ServiceBrowse + "/pop", opts)
+        return self._request(SERVICE_BROWSE + "/pop", opts)
 
     def browse_by_path(
         self, search_paths, zone_or_output_id="", offset=0, search_input=None
@@ -662,15 +662,15 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         # authenticate / register
         # warning: at first launch the user has to approve the app in the Roon settings.
         appinfo = self._appinfo.copy()
-        appinfo["required_services"] = [ServiceTransport, ServiceBrowse]
-        appinfo["provided_services"] = [ControlVolume, ControlSource]
+        appinfo["required_services"] = [SERVICE_TRANSPORT, SERVICE_BROWSE]
+        appinfo["provided_services"] = [CONTROL_VOLUME, CONTROL_SOURCE]
         if self._token:
             appinfo["token"] = self._token
         if not self._token:
             LOGGER.info("The application should be approved within Roon's settings.")
         else:
             LOGGER.info("Registering the app with Roon...")
-        self._roonsocket.send_request(ServiceRegistry + "/register", appinfo)
+        self._roonsocket.send_request(SERVICE_REGISTRY + "/register", appinfo)
 
     def _server_registered(self, reginfo):
         LOGGER.info("Registered to Roon server %s" % reginfo["display_name"])
@@ -682,8 +682,8 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         if not self._outputs:
             self._outputs = self._get_outputs()
         # subscribe to state change events
-        self._roonsocket.subscribe(ServiceTransport, "zones", self._on_state_change)
-        self._roonsocket.subscribe(ServiceTransport, "outputs", self._on_state_change)
+        self._roonsocket.subscribe(SERVICE_TRANSPORT, "zones", self._on_state_change)
+        self._roonsocket.subscribe(SERVICE_TRANSPORT, "outputs", self._on_state_change)
         # set flag that we're fully initialized (used for blocking init)
         self.ready = True
 
@@ -757,7 +757,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def _get_outputs(self):
         outputs = {}
-        data = self._request(ServiceTransport + "/get_outputs")
+        data = self._request(SERVICE_TRANSPORT + "/get_outputs")
         if data and "outputs" in data:
             for output in data["outputs"]:
                 outputs[output["output_id"]] = output
@@ -765,7 +765,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def _get_zones(self):
         zones = {}
-        data = self._request(ServiceTransport + "/get_zones")
+        data = self._request(SERVICE_TRANSPORT + "/get_zones")
         if data and "zones" in data:
             for zone in data["zones"]:
                 zones[zone["zone_id"]] = zone
