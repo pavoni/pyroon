@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 
 import logging
 
-SOOD_PORT         = 9003;
-SOOD_MULTICAST_IP = "239.255.90.90";
+SOOD_PORT = 9003
+SOOD_MULTICAST_IP = "239.255.90.90"
 
 SERVICE_REGISTRY = "com.roonlabs.registry:1"
 SERVICE_TRANSPORT = "com.roonlabs.transport:2"

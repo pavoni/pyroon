@@ -4,7 +4,7 @@ import threading
 
 import websocket
 
-from .constants import LOGGER, CONTROL_SOURCE, CONTROL_VOLUME, REGISTERED, SERVICE_PING
+from .constants import LOGGER, REGISTERED, SERVICE_PING
 
 try:
     import simplejson as json
@@ -141,15 +141,7 @@ class RoonApiWebSocket(
             if body and "{" in body:
                 body = json.loads(body)
             # handle message
-            if CONTROL_SOURCE in header:
-                # incoming message for source_control endpoint
-                event = header.split("/")[-1]
-                self._source_controls_callback(event, request_id, body)
-            elif CONTROL_VOLUME in header:
-                # incoming message for volume_control endpoint
-                event = header.split("/")[-1]
-                self._volume_controls_callback(event, request_id, body)
-            elif SERVICE_PING in header:
+            if SERVICE_PING in header:
                 # reply to incoming ping from server
                 self.send_complete(request_id, "Success")
             elif REGISTERED in header:
