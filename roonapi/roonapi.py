@@ -12,10 +12,6 @@ from .constants import (
 from .discovery import RoonDiscovery
 from .roonapisocket import RoonApiWebSocket
 
-def discover_server():
-    roondiscovery = RoonDiscovery(self._server_discovered)
-    servers = roondiscovery.all()
-    return servers
 
 class RoonApi:  # pylint: disable=too-many-instance-attributes
     """Class to handle talking to the roon server."""
