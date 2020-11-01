@@ -20,6 +20,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
     _roondiscovery = None
     _host = None
     _core_id = None
+    _core_name = None
 
     _port = None
     _token = None
@@ -43,6 +44,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
     def core_id(self):
         """Return the roon host."""
         return self._core_id
+
+    @property
+    def core_name(self):
+        """Return the roon core name."""
+        return self._core_name
 
     @property
     def zones(self):
@@ -593,6 +599,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         LOGGER.debug(reginfo)
         self._token = reginfo["token"]
         self._core_id = reginfo["core_id"]
+        self._core_name = reginfo["display_name"]
 
         # fill zones and outputs dicts one time so the data is available right away
         if not self._zones:
