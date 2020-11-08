@@ -19,15 +19,14 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
     _roonsocket = None
     _roondiscovery = None
     _host = None
+    _core_id = None
+    _core_name = None
+
     _port = None
     _token = None
     _exit = False
     _zones = {}
     _outputs = {}
-    _source_controls_request_id = None
-    _volume_controls_request_id = None
-    _source_controls = {}
-    _volume_controls = {}
     _state_callbacks = []
     ready = False
 
@@ -35,6 +34,21 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
     def token(self):
         """Return the authentication key from the registration with Roon."""
         return self._token
+
+    @property
+    def host(self):
+        """Return the roon host."""
+        return self._host
+
+    @property
+    def core_id(self):
+        """Return the roon host."""
+        return self._core_id
+
+    @property
+    def core_name(self):
+        """Return the roon core name."""
+        return self._core_name
 
     @property
     def zones(self):
@@ -257,88 +271,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         """
         data = {"output_ids": output_ids}
         return self._request(SERVICE_TRANSPORT + "/ungroup_outputs", data)
-
-    # pylint: disable=too-many-arguments
-    def register_source_control(
-        self,
-        control_key,
-        display_name,
-        callback,
-        initial_state="selected",
-        supports_standby=True,
-    ):
-        """Register a new source control on the api."""
-        if control_key in self._source_controls:
-            LOGGER.error("source_control %s is already registered!" % control_key)
-            return
-        control_data = {
-            "display_name": display_name,
-            "supports_standby": supports_standby,
-            "status": initial_state,
-            "control_key": control_key,
-        }
-        self._source_controls[control_key] = (callback, control_data)
-        if self._source_controls_request_id:
-            data = {"controls_added": [control_data]}
-            self._roonsocket.send_continue(self._source_controls_request_id, data)
-
-    def update_source_control(self, control_key, new_state):
-        """Update an existing source control on the api."""
-        if control_key not in self._source_controls:
-            LOGGER.warning("source_control %s is not (yet) registered!" % control_key)
-            return
-        if not self._source_controls_request_id:
-            LOGGER.warning("Not yet registered, can not update source control")
-            return
-        self._source_controls[control_key][1]["status"] = new_state
-        data = {"controls_changed": [self._source_controls[control_key][1]]}
-        self._roonsocket.send_continue(self._source_controls_request_id, data)
-
-    def register_volume_control(
-        self,
-        control_key,
-        display_name,
-        callback,
-        initial_volume=0,
-        volume_type="number",
-        volume_step=2,
-        volume_min=0,
-        volume_max=100,
-        is_muted=False,
-    ):
-        """Register a new volume control on the api."""
-        if control_key in self._volume_controls:
-            LOGGER.error("source_control %s is already registered!" % control_key)
-            return
-        control_data = {
-            "display_name": display_name,
-            "volume_type": volume_type,
-            "volume_min": volume_min,
-            "volume_max": volume_max,
-            "volume_value": initial_volume,
-            "volume_step": volume_step,
-            "is_muted": is_muted,
-            "control_key": control_key,
-        }
-        self._volume_controls[control_key] = (callback, control_data)
-        if self._volume_controls_request_id:
-            data = {"controls_added": [control_data]}
-            self._roonsocket.send_continue(self._volume_controls_request_id, data)
-
-    def update_volume_control(self, control_key, volume=None, mute=None):
-        """Update an existing volume control, report its state to Roon."""
-        if control_key not in self._volume_controls:
-            LOGGER.warning("volume_control %s is not (yet) registered!" % control_key)
-            return
-        if not self._volume_controls_request_id:
-            LOGGER.warning("Not yet registered, can not update volume control")
-            return
-        if volume is not None:
-            self._volume_controls[control_key][1]["volume_value"] = volume
-        if mute is not None:
-            self._volume_controls[control_key][1]["is_muted"] = mute
-        data = {"controls_changed": [self._volume_controls[control_key][1]]}
-        self._roonsocket.send_continue(self._volume_controls_request_id, data)
 
     def register_state_callback(self, callback, event_filter=None, id_filter=None):
         """
@@ -583,7 +515,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         )
 
     # private methods
-
+    # pylint: disable=too-many-arguments
     def __init__(self, appinfo, token=None, host=None, port=9100, blocking_init=True):
         """
         Set up the connection with Roon.
@@ -649,8 +581,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         """Successfully connected the websocket."""
         LOGGER.info("Connection with roon websockets (re)created.")
         self.ready = False
-        self._source_controls_request_id = None
-        self._volume_controls_request_id = None
         # authenticate / register
         # warning: at first launch the user has to approve the app in the Roon settings.
         appinfo = self._appinfo.copy()
@@ -665,9 +595,12 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         self._roonsocket.send_request(SERVICE_REGISTRY + "/register", appinfo)
 
     def _server_registered(self, reginfo):
-        LOGGER.info("Registered to Roon server %s" % reginfo["display_name"])
+        LOGGER.info("Registered to Roon server %s", reginfo["display_name"])
         LOGGER.debug(reginfo)
         self._token = reginfo["token"]
+        self._core_id = reginfo["core_id"]
+        self._core_name = reginfo["display_name"]
+
         # fill zones and outputs dicts one time so the data is available right away
         if not self._zones:
             self._zones = self._get_zones()

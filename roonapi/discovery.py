@@ -24,12 +24,14 @@ def local_ip():
 class RoonDiscovery(threading.Thread):
     """Class to discover Roon Servers connected in the network."""
 
-    _exit = threading.Event()
-    _discovered_callback = None
-
-    def __init__(self, callback):
+    def __init__(self, callback, core_id=None):
         """Discover Roon Servers connected in the network."""
-        self._discovered_callback = callback
+        self._exit = threading.Event()
+        self._core_id = core_id
+        if callback is None:
+            self._discovered_callback = lambda _a, _b: None
+        else:
+            self._discovered_callback = callback
         threading.Thread.__init__(self)
         self.daemon = True
 
@@ -47,7 +49,7 @@ class RoonDiscovery(threading.Thread):
 
     def all(self):
         """Scan and return all found entries as a list. Each server is a tuple of host,port."""
-        self._discover(first_only=False)
+        return self._discover(first_only=False)
 
     def first(self):
         """Return first server that is found."""
@@ -78,12 +80,24 @@ class RoonDiscovery(threading.Thread):
 
                     host = server[0]
                     port = message["properties"]["http_port"]
+                    unique_id = message["properties"]["unique_id"]
+                    LOGGER.debug("Discovered %s", message)
+
                     if exclude_self and host in own_ip:
                         LOGGER.debug(
                             "Ignoring server with address %s, because it's on this machine",
                             host,
                         )
                         continue
+
+                    if self._core_id is not None and self._core_id != unique_id:
+                        LOGGER.debug(
+                            "Ignoring server with id %s, because we're looking for %s",
+                            unique_id,
+                            self._core_id,
+                        )
+                        continue
+
                     entries.append((host, port))
                     if first_only:
                         # we're only interested in the first server found

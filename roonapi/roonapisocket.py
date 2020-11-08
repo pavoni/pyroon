@@ -150,6 +150,10 @@ class RoonApiWebSocket(
             else:
                 # this is just a result for one of our requests
                 self._results[request_id] = body
+        except websocket.WebSocketConnectionClosedException:
+            # This can happen while closing a connection - so ignore
+            pass
+
         except Exception:  # pylint: disable=broad-except
             LOGGER.exception("Error while parsing message")
             LOGGER.debug(message)
