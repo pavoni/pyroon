@@ -516,7 +516,15 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     # private methods
     # pylint: disable=too-many-arguments
-    def __init__(self, appinfo, token=None, host=None, port=9100, blocking_init=True, core_id=None):
+    def __init__(
+        self,
+        appinfo,
+        token=None,
+        host=None,
+        port=9100,
+        blocking_init=True,
+        core_id=None,
+    ):
         """
         Set up the connection with Roon.
 
