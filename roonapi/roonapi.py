@@ -516,7 +516,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     # private methods
     # pylint: disable=too-many-arguments
-    def __init__(self, appinfo, token=None, host=None, port=9100, blocking_init=True):
+    def __init__(self, appinfo, token=None, host=None, port=9100, blocking_init=True, core_id=None):
         """
         Set up the connection with Roon.
 
@@ -536,7 +536,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         if host and port:
             self._server_discovered(host, port)
         else:
-            self._roondiscovery = RoonDiscovery(self._server_discovered)
+            self._roondiscovery = RoonDiscovery(self._server_discovered, core_id)
             self._roondiscovery.start()
         # block untill we're ready
         if blocking_init:

@@ -37,9 +37,7 @@ for api in apis:
     api.stop()
 
 print("Find authorised server via discovery")
-discover_with_core = RoonDiscovery(None, core_id)
-server = discover_with_core.first()
-roonapi = RoonApi(appinfo, token, server[0], server[1], True)
+roonapi = RoonApi(appinfo, token, None, None, True, core_id)
 
 print("Call the API")
 print(roonapi.zones)
