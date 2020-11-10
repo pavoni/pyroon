@@ -62,8 +62,10 @@ class RoonDiscovery(threading.Thread):
             socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP
         ) as sock:
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
-            sock.settimeout(5)
             sock.sendto(msg, (SOOD_MULTICAST_IP, SOOD_PORT))
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            sock.sendto(msg, ("<broadcast>", SOOD_PORT))
+            sock.settimeout(5)
             while not self._exit.isSet():
                 try:
                     data, server = sock.recvfrom(1024)
