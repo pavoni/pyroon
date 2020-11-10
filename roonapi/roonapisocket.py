@@ -163,12 +163,12 @@ class RoonApiWebSocket(
         """Handle error callback."""
         if not error:
             error = w_socket  # compatability fix because of change in websocket-client v0.49
-        LOGGER.error("on_error %s", error)
+        LOGGER.info("on_error %s", error)
 
     # pylint: disable=unused-argument
     def on_close(self, w_socket=None):
         """Handle closing the session."""
-        LOGGER.info("session closed")
+        LOGGER.debug("session closed")
         self.connected = False
         self._requestid = 10
         self._subkey = 0
