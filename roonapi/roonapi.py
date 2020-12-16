@@ -387,8 +387,8 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return self.browse_by_path(["Playlists"], offset=offset)
 
     def internet_radio(self, offset=0):
-        """Return the list of internet radio stations."""
-        return self.browse_by_path(["Internet Radio"], offset=offset)
+        """Return the list of radio stations."""
+        return self.browse_by_path(["My live Radio"], offset=offset)
 
     def artists(self, offset=0):
         """Return the list of artists in the library."""
@@ -425,9 +425,9 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         )
 
     def play_radio(self, zone_or_output_id, radio_title):
-        """Play internet radio by name on the specified zone."""
+        """Play radio by name on the specified zone."""
         return self.browse_by_path(
-            ["Internet Radio", radio_title, "Play Radio", "Play Now"], zone_or_output_id
+            ["My Live Radio", radio_title, "Play Radio", "Play Now"], zone_or_output_id
         )
 
     def play_genre(self, zone_or_output_id, genre_name, subgenre="", shuffle=False):
@@ -450,7 +450,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             "hierarchy": "browse",
         }
         header_result = self.browse_browse(opts)
-        # For Internet radio the above load starts play - so catch this and return
+        # For Radio the above load starts play - so catch this and return
         try:
             if header_result["list"]["level"] == 0:
                 LOGGER.info("Initial load started playback")
