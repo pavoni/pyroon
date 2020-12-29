@@ -5,6 +5,7 @@ import time
 
 from .constants import (
     LOGGER,
+    PAGE_SIZE,
     SERVICE_BROWSE,
     SERVICE_REGISTRY,
     SERVICE_TRANSPORT,
@@ -441,6 +442,106 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return self.browse_by_path(
             ["Genres", genre_name, "Play Genre", action], zone_or_output_id
         )
+
+    def play_media(self, zone_or_output_id, path, action=None):
+        """
+        Play the media specified.
+
+        params:
+            zone_or_output_id: where to play the media
+            path: a list allowing roon to find the media
+                  eg ["Library", "Artists", "Neil Young", "Harvest"] or ["My Live Radio", "BBC Radio 4"]
+            action: the roon action to take to play the media - leave blank to choose the roon default
+                    eg "Play Now", "Queue" or "Start Radio"
+        """
+
+        opts = {
+            "zone_or_output_id": zone_or_output_id,
+            "hierarchy": "browse",
+            "count": PAGE_SIZE,
+            "pop_all": True,
+        }
+
+        total_count = self.browse_browse(opts)["list"]["count"]
+        del opts["pop_all"]
+
+        load_opts = {
+            "zone_or_output_id": zone_or_output_id,
+            "hierarchy": "browse",
+            "count": PAGE_SIZE,
+            "offset": 0,
+        }
+        items = []
+        for element in path:
+            load_opts["offset"] = 0
+            found = None
+            searched = 0
+
+            LOGGER.debug("Looking for %s", element)
+            while searched < total_count and found is None:
+                items = self.browse_load(load_opts)["items"]
+
+                for item in items:
+                    searched += 1
+                    if item["title"] == element:
+                        found = item
+                        break
+
+                load_opts["offset"] += PAGE_SIZE
+            if searched >= total_count and found is None:
+                LOGGER.error("Could not find media path element '%s'", element)
+                return None
+
+            opts["item_key"] = found["item_key"]
+            load_opts["item_key"] = found["item_key"]
+
+            total_count = self.browse_browse(opts)["list"]["count"]
+
+            load_opts["offset"] = 0
+            items = self.browse_load(load_opts)["items"]
+
+            if found["hint"] == "action":
+                # Loading item we found already started playing
+                return True
+
+        # First item shoule be the action_list for playing this item (eg Play Genre, Play Artist, Play Album)
+        if items[0]["hint"] != "action_list":
+            LOGGER.error(
+                "Found media does not have playable action list'%s'",
+                [item["title"] for item in items],
+            )
+            return False
+
+        opts["item_key"] = items[0]["item_key"]
+        load_opts["item_key"] = items[0]["item_key"]
+        play_header = items[0]["title"]
+        self.browse_browse(opts)
+        items = self.browse_load(load_opts)["items"]
+
+        # We should now have play actions (eg Play Now, Add Next, Queue action, Start Radio)
+        # So pick the one to use - the default is the first one
+        if action is None:
+            take_action = items[0]
+        else:
+            found_actions = [item for item in items if item["title"] == action]
+            if len(found_actions) == 0:
+                LOGGER.error(
+                    "Could not find play action '%s' in %s",
+                    action,
+                    [item["title"] for item in items],
+                )
+                return False
+            take_action = found_actions[0]
+
+        if take_action["hint"] != "action":
+            LOGGER.error("Found media does not have playable action'%s'")
+            return False
+
+        opts["item_key"] = take_action["item_key"]
+        load_opts["item_key"] = take_action["item_key"]
+        LOGGER.info("Play action was '%s' / '%s'", play_header, take_action["title"])
+        self.browse_browse(opts)
+        return True
 
     def play_id(self, zone_or_output_id, media_id):
         """Play based on the media_id from the browse api."""
