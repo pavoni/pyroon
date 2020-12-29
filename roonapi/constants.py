@@ -22,6 +22,7 @@ MESSAGE_REQUEST = "REQUEST"
 MESSAGE_COMPLETE = "COMPLETE"
 MESSAGE_CONTINUE = "CONTINUE"
 
+PAGE_SIZE = 100
 
 LOG_FORMAT = logging.Formatter(
     "%(asctime)-15s %(levelname)-5s  %(module)s -- %(message)s"
