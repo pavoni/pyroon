@@ -489,7 +489,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
                 load_opts["offset"] += PAGE_SIZE
             if searched >= total_count and found is None:
-                LOGGER.error("Could not find media path element '%s'", element)
+                LOGGER.error(
+                    "Could not find media path element '%s' in %s",
+                    element,
+                    [item["title"] for item in items],
+                )
                 return None
 
             opts["item_key"] = found["item_key"]
