@@ -89,7 +89,7 @@ class RoonDiscovery(threading.Thread):
                         # we're only interested in the first server found
                         break
                 except socket.timeout:
-                    LOGGER.info("Timeout")
+                    LOGGER.debug("Timeout")
                     break
                 except FormatException as format_exception:
                     LOGGER.error("Format exception %s", format_exception.message)
