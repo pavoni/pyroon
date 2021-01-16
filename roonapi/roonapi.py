@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import threading
 import time
 
@@ -12,6 +13,25 @@ from .constants import (
 )
 from .discovery import RoonDiscovery
 from .roonapisocket import RoonApiWebSocket
+
+
+def split_media_path(path):
+    """Split a path (eg path/to/media) into a list for use by play_media."""
+
+    allparts = []
+    while 1:
+        parts = os.path.split(path)
+        if parts[0] == path:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+
+        if parts[1] == path:  # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+
+        path = parts[0]
+        allparts.insert(0, parts[1])
+    return allparts
 
 
 class RoonApi:  # pylint: disable=too-many-instance-attributes
