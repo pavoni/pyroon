@@ -2,7 +2,8 @@
 python library to interface with the Roon API (www.roonlabs.com)
 
 Full documentation will follow asap
-See the tests folder for some more code examples.
+
+See the examples folder for some code examples.
 
 
 Some example code:
