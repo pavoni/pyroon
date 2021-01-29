@@ -1,4 +1,4 @@
-# python-roon
+# python-roon ![Build status](https://github.com/pavoni/pyroon/workflows/Build/badge.svg) ![PyPi version](https://img.shields.io/pypi/v/roonapi) ![PyPi downloads](https://img.shields.io/pypi/dm/roonapi)
 python library to interface with the Roon API (www.roonlabs.com)
 
 Full documentation will follow asap
