@@ -41,6 +41,9 @@ items = roonapi.play_media(
     output_id, ["Library", "Artists", "Neil Young", "Harvest"], "Queue"
 )
 
+print("PLAY SUB GENRE")
+items = roonapi.play_media(output_id, ["Genres", "Jazz", "Cool"])
+
 # save the token for next time
 with open("mytokenfile", "w") as f:
     f.write(roonapi.token)
