@@ -330,7 +330,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def browse_browse(self, opts):
         """
-        Undocumented and complex browse call on the roon api.
+        Complex browse call on the roon api.
 
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
@@ -338,130 +338,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def browse_load(self, opts):
         """
-        Undocumented and complex browse call on the roon api.
+        Complex browse call on the roon api.
 
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
         return self._request(SERVICE_BROWSE + "/load", opts)
-
-    def browse_pop_all(self, opts):
-        """
-        Undocumented and complex browse call on the roon api.
-
-        reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
-        """
-        return self._request(SERVICE_BROWSE + "/pop_all", opts)
-
-    def browse_pop(self, opts):
-        """
-        Undocumented and complex browse call on the roon api.
-
-        reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
-        """
-        return self._request(SERVICE_BROWSE + "/pop", opts)
-
-    def browse_by_path(
-        self, search_paths, zone_or_output_id="", offset=0, search_input=None
-    ):
-        """
-        Workaround to browse content by specifying the path to the content.
-
-        params:
-            search_paths: a list of names to look for in the hierarchie.
-                          e.g. ["Playlists", "My Favourite Playlist"]
-            zone_or_output_id: id of a zone or output on which behalf the search is performed.
-                          can be ommitted for browsing but required for actions (play etc.)
-            offset: a list will only return 100 items, to get more use the offset
-        returns: a list of items (if found) as returned by the browse function
-        """
-        opts = {"hierarchy": "browse", "pop_all": True}
-        if zone_or_output_id:
-            opts["zone_or_output_id"] = zone_or_output_id
-        # go to first level (home)
-        result = self.browse_browse(opts)
-        if not result:
-            return None
-        # items at first level (mainmenu items)
-        result = self.browse_load(opts)
-        opts["pop_all"] = False
-        for search_for in search_paths:
-            if not result or "items" not in result:
-                break
-            for item in result["items"]:
-                if (
-                    item["title"] == search_for
-                    or search_input
-                    and item.get("input_prompt")
-                ):
-                    opts["item_key"] = item["item_key"]
-                    if item.get("input_prompt"):
-                        opts["input"] = search_input
-                    result = self.browse_browse(opts)
-                    if result and "list" in result and result["list"]["count"] > 100:
-                        opts["offset"] = offset
-                        opts["set_display_offset"] = offset
-                    result = self.browse_load(opts)
-        return result
-
-    def playlists(self, offset=0):
-        """Return the list of playlists."""
-        return self.browse_by_path(["Playlists"], offset=offset)
-
-    def internet_radio(self, offset=0):
-        """Return the list of radio stations."""
-        return self.browse_by_path(["My live Radio"], offset=offset)
-
-    def artists(self, offset=0):
-        """Return the list of artists in the library."""
-        return self.browse_by_path(["Library", "Artists"], offset=offset)
-
-    def albums(self, offset=0):
-        """Return the list of albums in the library."""
-        return self.browse_by_path(["Library", "Albums"], offset=offset)
-
-    def tracks(self, offset=0):
-        """Return the list of tracks in the library."""
-        return self.browse_by_path(["Library", "Tracks"], offset=offset)
-
-    def tags(self, offset=0):
-        """Return the list of tags in the library."""
-        return self.browse_by_path(["Library", "Tags"], offset=offset)
-
-    def genres(self, subgenres_for="", offset=0):
-        """Return the list of genres in the library."""
-        return self.browse_by_path(["Genres", subgenres_for], offset=offset)
-
-    def play_playlist(self, zone_or_output_id, playlist_title, shuffle=False):
-        """Play playlist by name on the specified zone."""
-        play_action = "Shuffle" if shuffle else "Play Now"
-        return self.browse_by_path(
-            ["Playlists", playlist_title, "Play Playlist", play_action],
-            zone_or_output_id,
-        )
-
-    def queue_playlist(self, zone_or_output_id, playlist_title):
-        """Queue playlist by name on the specified zone."""
-        return self.browse_by_path(
-            ["Playlists", playlist_title, "Play Playlist", "Queue"], zone_or_output_id
-        )
-
-    def play_radio(self, zone_or_output_id, radio_title):
-        """Play radio by name on the specified zone."""
-        return self.browse_by_path(
-            ["My Live Radio", radio_title, "Play Radio", "Play Now"], zone_or_output_id
-        )
-
-    def play_genre(self, zone_or_output_id, genre_name, subgenre="", shuffle=False):
-        """Play specified genre on the specified zone."""
-        action = "Shuffle" if shuffle else "Play Genre"
-        if subgenre:
-            return self.browse_by_path(
-                ["Genres", genre_name, subgenre, "Play Genre", action],
-                zone_or_output_id,
-            )
-        return self.browse_by_path(
-            ["Genres", genre_name, "Play Genre", action], zone_or_output_id
-        )
 
     def play_media(self, zone_or_output_id, path, action=None):
         """
@@ -632,12 +513,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 "Playback requested of unsupported id: %s",
                 media_id,
             )
-
-    def search_artists(self, search_input):
-        """Search for artists by name."""
-        return self.browse_by_path(
-            ["Library", "Search", "Artists"], search_input=search_input
-        )
 
     # private methods
     # pylint: disable=too-many-arguments
