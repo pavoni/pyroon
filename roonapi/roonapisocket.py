@@ -128,13 +128,19 @@ class RoonApiWebSocket(
             lines = message.split("\n")
             header = lines[0]
             body = ""
+
+            request_id = None
+            line_with_request_id = [
+                line for line in lines if line.startswith("Request-Id")
+            ]
+            if line_with_request_id:
+                request_id = int(line_with_request_id[0].split("Request-Id: ")[1])
+
             if "Content-Type:" in message:
-                request_id = int(lines[2].split("Request-Id: ")[1])
-                body = "".join(lines[5:])
-            elif "Logging:" in message:
-                request_id = int(lines[2].split("Request-Id: ")[1])
-            else:
-                request_id = int(lines[1].split("Request-Id: ")[1])
+                # Looks like roon adds an extra newline after the header, so use this to find content
+                # https://github.com/RoonLabs/node-roon-api/blob/master/moomsg.js#L45
+                body = message.split("\n\n")[1]
+            elif "Logging:" not in message:
                 body = header
             if body and "{" in body:
                 body = json.loads(body)
