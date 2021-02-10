@@ -448,6 +448,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         self.browse_browse(opts)
         return True
 
+    # pylint: disable=too-many-return-statements
     def play_id(self, zone_or_output_id, media_id):
         """Play based on the media_id from the browse api."""
         opts = {
@@ -460,17 +461,17 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         try:
             if header_result["list"]["level"] == 0:
                 LOGGER.info("Initial load started playback")
-                return
+                return True
         except (NameError, KeyError, TypeError):
             LOGGER.error("Could not play id:%s, result: %s", media_id, header_result)
-            return
+            return False
 
         if header_result is None:
             LOGGER.error(
                 "Playback requested of unsupported id: %s",
                 media_id,
             )
-            return
+            return False
 
         result = self.browse_load(opts)
 
@@ -481,7 +482,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 "Playback requested but item is a list, not a playable action or action_list id: %s",
                 media_id,
             )
-            return
+            return False
 
         if hint == "action_list":
             opts["item_key"] = first_item["item_key"]
@@ -491,7 +492,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                     "Playback requested of unsupported id: %s",
                     media_id,
                 )
-                return
+                return False
             result = self.browse_load(opts)
             first_item = result["items"][0]
             hint = first_item["hint"]
@@ -502,7 +503,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 media_id,
                 header_result,
             )
-            return
+            return False
 
         play_action = result["items"][0]
         hint = play_action["hint"]
@@ -514,6 +515,9 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 "Playback requested of unsupported id: %s",
                 media_id,
             )
+            return False
+
+        return True
 
     # private methods
     # pylint: disable=too-many-arguments
