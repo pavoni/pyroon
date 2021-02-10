@@ -461,8 +461,9 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             if header_result["list"]["level"] == 0:
                 LOGGER.info("Initial load started playback")
                 return
-        except NameError:
-            pass
+        except (NameError, KeyError, TypeError):
+            LOGGER.error("Could not play id:%s, result: %s", media_id, header_result)
+            return
 
         if header_result is None:
             LOGGER.error(
