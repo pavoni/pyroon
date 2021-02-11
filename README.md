@@ -29,7 +29,7 @@ roonapi = RoonApi(appinfo, token, server)
 
 
 def my_state_callback(event, changed_ids):
-    """Called when something changes in roon."""
+    """Call when something changes in roon."""
     print("my_state_callback event:%s changed_ids: %s" % (event, changed_ids))
     for zone_id in changed_ids:
         zone = roonapi.zones[zone_id]
