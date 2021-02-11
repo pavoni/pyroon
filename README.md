@@ -1,7 +1,7 @@
 # pyRoon ![Build status](https://github.com/pavoni/pyroon/workflows/Build/badge.svg) ![PyPi version](https://img.shields.io/pypi/v/roonapi) ![PyPi downloads](https://img.shields.io/pypi/dm/roonapi)
 python library to interface with the Roon API (www.roonlabs.com)
 
-See the examples folder for code examples.
+See https://github.com/pavoni/pyroon/tree/master/examples for code examples.
 
 
 An example of connecting to the roon server and using a subscription:
