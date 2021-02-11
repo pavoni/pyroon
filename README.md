@@ -1,41 +1,46 @@
 # pyRoon ![Build status](https://github.com/pavoni/pyroon/workflows/Build/badge.svg) ![PyPi version](https://img.shields.io/pypi/v/roonapi) ![PyPi downloads](https://img.shields.io/pypi/dm/roonapi)
 python library to interface with the Roon API (www.roonlabs.com)
 
-Full documentation will follow asap
-
-See the examples folder for some code examples.
+See the examples folder for code examples.
 
 
-Some example code:
+An example of connecting to the roon server and using a subscription:
 
 ```
-from roonapi import RoonApi
-appinfo = {
-        "extension_id": "python_roon_test",
-        "display_name": "Python library for Roon",
-        "display_version": "1.0.0",
-        "publisher": "marcelveldt",
-        "email": "mygreat@emailaddress.com"
-    }
+import time
 
-# host can be None if you want to use discovery - but this sometimes returns the local machine, not the real roon server
-host = "192.168.1.x"
+from roonapi import RoonApi
+
+appinfo = {
+    "extension_id": "python_roon_test",
+    "display_name": "Python library for Roon",
+    "display_version": "1.0.0",
+    "publisher": "gregd",
+    "email": "mygreat@emailaddress.com",
+}
 
 # Can be None if you don't yet have a token
-token = open('mytokenfile').read()
+token = open("mytokenfile").read()
 
-roonapi = RoonApi(appinfo, token)
+# Take a look at examples/discovery if you want to use discovery.
+server = "192.168.1.160"
 
-# get all zones (as dict)
-print(roonapi.zones)
+roonapi = RoonApi(appinfo, token, server)
 
-# get all outputs (as dict)
-print(roonapi.outputs)
+
+def my_state_callback(event, changed_ids):
+    """Called when something changes in roon."""
+    print("my_state_callback event:%s changed_ids: %s" % (event, changed_ids))
+    for zone_id in changed_ids:
+        zone = roonapi.zones[zone_id]
+        print("zone_id:%s zone_info: %s" % (zone_id, zone))
+
 
 # receive state updates in your callback
 roonapi.register_state_callback(my_state_callback)
 
+time.sleep(60)
 
 # save the token for next time
-with open('mytokenfile', 'w') as f:
-    f.write(roonapi.token)
+with open("mytokenfile", "w") as f:
+    f.write(roonapi.token)```
