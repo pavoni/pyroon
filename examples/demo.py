@@ -12,7 +12,7 @@ appinfo = {
 token = open("mytokenfile").read()
 
 # Take a look at examples/discovery if you want to use discovery.
-server = "192.168.1.160"
+server = "192.168.3.60"
 
 roonapi = RoonApi(appinfo, token, server)
 
