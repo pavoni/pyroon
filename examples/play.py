@@ -8,7 +8,7 @@ appinfo = {
     "email": "mygreat@emailaddress.com",
 }
 
-server = "192.168.1.160"
+server = "192.168.3.60"
 target_zone = "Mixing Speakers"
 # Can be None if you don't yet have a token
 token = open("mytokenfile").read()
