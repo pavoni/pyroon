@@ -118,6 +118,70 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                     return zone
         return None
 
+    def is_grouped(self, output_id):
+        """
+        Whether this output is part of a group.
+
+        params:
+            output_id: the id of the output
+        returns: boolean whether this outout is grouped
+        """
+
+        output = self.outputs[output_id]
+        zone_id = output["zone_id"]
+        is_grouped = len(self.zones[zone_id]["outputs"]) > 1
+        return is_grouped
+
+    def is_group_main(self, output_id):
+        """
+        Whether this output is the the main output of a group.
+
+        params:
+            output_id: the id of the output
+        returns: boolean whether this output is the main output of a group
+        """
+
+        if not self.is_grouped(output_id):
+            return False
+
+        output = self.outputs[output_id]
+        zone_id = output["zone_id"]
+        is_group_main = self.zones[zone_id]["outputs"][0]["output_id"] == output_id
+        return is_group_main
+
+    def group_main_zone(self, output_id):
+        """
+        Get the main zone of the specified output group.
+
+        params:
+            output_id: the id of the output
+        returns: the main zone this one is grouped with
+        """
+
+        if not self.is_grouped(output_id):
+            return None
+        output = self.outputs[output_id]
+        zone_id = output["zone_id"]
+        group_main_zone = self.zones[zone_id]["outputs"][0]["zone_id"]
+        return group_main_zone
+
+    def group_main_zone_name(self, output_id):
+        """
+        Get the name of the main zone of the specified output group.
+
+        Note that this returns the 'raw' zone name - not the name of the group zone.
+
+        params:
+            output_id: the id of the output
+        returns: name of the main zone of this group
+        """
+
+        group_main_zone = self.group_main_zone(output_id)
+        if group_main_zone is None:
+            return ""
+        group_main_zone_name = self.zones[group_main_zone]["outputs"][0]["display_name"]
+        return group_main_zone_name
+
     def get_image(self, image_key, scale="fit", width=500, height=500):
         """
         Get the image url for the specified image key.
