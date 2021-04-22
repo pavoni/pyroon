@@ -156,6 +156,10 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         data = {"zone_or_output_id": zone_or_output_id, "control": control}
         return self._request(SERVICE_TRANSPORT + "/control", data)
 
+    def pause_all(self):
+        """Pause all zones."""
+        return self._request(SERVICE_TRANSPORT + "/pause_all")
+
     def standby(self, output_id, control_key=None):
         """
         Send standby command to the specified output.
