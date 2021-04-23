@@ -127,9 +127,12 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         returns: boolean whether this outout is grouped
         """
 
-        output = self.outputs[output_id]
-        zone_id = output["zone_id"]
-        is_grouped = len(self.zones[zone_id]["outputs"]) > 1
+        try:
+            output = self.outputs[output_id]
+            zone_id = output["zone_id"]
+            is_grouped = len(self.zones[zone_id]["outputs"]) > 1
+        except KeyError:
+            is_grouped = False
         return is_grouped
 
     def is_group_main(self, output_id):
