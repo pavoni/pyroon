@@ -152,38 +152,21 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         is_group_main = self.zones[zone_id]["outputs"][0]["output_id"] == output_id
         return is_group_main
 
-    def group_main_zone(self, output_id):
+    def grouped_zone_names(self, output_id):
         """
-        Get the main zone of the specified output group.
+        Get the names of the group players.
 
         params:
             output_id: the id of the output
-        returns: the main zone this one is grouped with
+        returns: The names of the grouped zones. The first is the main output.
         """
 
         if not self.is_grouped(output_id):
-            return None
+            return []
         output = self.outputs[output_id]
         zone_id = output["zone_id"]
-        group_main_zone = self.zones[zone_id]["outputs"][0]["zone_id"]
-        return group_main_zone
-
-    def group_main_zone_name(self, output_id):
-        """
-        Get the name of the main zone of the specified output group.
-
-        Note that this returns the 'raw' zone name - not the name of the group zone.
-
-        params:
-            output_id: the id of the output
-        returns: name of the main zone of this group
-        """
-
-        group_main_zone = self.group_main_zone(output_id)
-        if group_main_zone is None:
-            return ""
-        group_main_zone_name = self.zones[group_main_zone]["outputs"][0]["display_name"]
-        return group_main_zone_name
+        grouped_zone_names = [o["display_name"] for o in self.zones[zone_id]["outputs"]]
+        return grouped_zone_names
 
     def get_image(self, image_key, scale="fit", width=500, height=500):
         """
