@@ -466,7 +466,8 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         # First item shoule be the action_list for playing this item (eg Play Genre, Play Artist, Play Album)
         if items[0]["hint"] != "action_list":
             LOGGER.error(
-                "Found media does not have playable action list'%s'",
+                "Found media does not have playable action list %s '%s'",
+                items[0]["hint"],
                 [item["title"] for item in items],
             )
             return False
@@ -493,7 +494,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             take_action = found_actions[0]
 
         if take_action["hint"] != "action":
-            LOGGER.error("Found media does not have playable action'%s'")
+            LOGGER.error(
+                "Found media does not have playable action %s - %s",
+                take_action["title"],
+                take_action["hint"],
+            )
             return False
 
         opts["item_key"] = take_action["item_key"]
