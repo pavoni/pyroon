@@ -463,8 +463,8 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 # Loading item we found already started playing
                 return True
 
-        # First item shoule be the action_list for playing this item (eg Play Genre, Play Artist, Play Album)
-        if items[0].get("hint") != "action_list":
+        # First item shoule be the action/action_list for playing this item (eg Play Genre, Play Artist, Play Album)
+        if items[0].get("hint") not in ["action_list", "action"]:
             LOGGER.error(
                 "Found media does not have playable action_list hint='%s' '%s'",
                 items[0].get("hint"),
