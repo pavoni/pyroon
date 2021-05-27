@@ -463,8 +463,8 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 # Loading item we found already started playing
                 return True
 
-        # First item shoule be the action_list for playing this item (eg Play Genre, Play Artist, Play Album)
-        if items[0].get("hint") != "action_list":
+        # First item shoule be the action/action_list for playing this item (eg Play Genre, Play Artist, Play Album)
+        if items[0].get("hint") not in ["action_list", "action"]:
             LOGGER.error(
                 "Found media does not have playable action_list hint='%s' '%s'",
                 items[0].get("hint"),
@@ -472,11 +472,12 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             )
             return False
 
-        opts["item_key"] = items[0]["item_key"]
-        load_opts["item_key"] = items[0]["item_key"]
         play_header = items[0]["title"]
-        self.browse_browse(opts)
-        items = self.browse_load(load_opts)["items"]
+        if items[0].get("hint") == "action_list":
+            opts["item_key"] = items[0]["item_key"]
+            load_opts["item_key"] = items[0]["item_key"]
+            self.browse_browse(opts)
+            items = self.browse_load(load_opts)["items"]
 
         # We should now have play actions (eg Play Now, Add Next, Queue action, Start Radio)
         # So pick the one to use - the default is the first one
