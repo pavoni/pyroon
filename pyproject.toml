@@ -35,5 +35,5 @@ pytest = "==5.2.1"
 line-length = 88
 
 [build-system]
-requires = ["poetry>=1.1.4"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
