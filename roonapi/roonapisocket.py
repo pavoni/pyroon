@@ -171,9 +171,9 @@ class RoonApiWebSocket(
         LOGGER.info("on_error %s", error)
 
     # pylint: disable=unused-argument
-    def on_close(self, w_socket=None):
+    def on_close(self, w_socket, close_status_code, close_msg):
         """Handle closing the session."""
-        LOGGER.debug("session closed")
+        LOGGER.debug("session closed (%s) %s", close_msg, close_status_code)
         self.connected = False
         self._requestid = 10
         self._subkey = 0
