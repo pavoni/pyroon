@@ -398,6 +398,89 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         """
         return self._request(SERVICE_BROWSE + "/load", opts)
 
+    def list_media(self, zone_or_output_id, path):
+        """
+        List the media specified.
+
+        params:
+            zone_or_output_id: where to play the media
+            path: a list allowing roon to find the media
+                  eg ["Library", "Artists", "Neil Young", "Harvest"] or ["My Live Radio", "BBC Radio 4"]
+        """
+
+        opts = {
+            "zone_or_output_id": zone_or_output_id,
+            "hierarchy": "browse",
+            "count": PAGE_SIZE,
+            "pop_all": True,
+        }
+
+        total_count = self.browse_browse(opts)["list"]["count"]
+        del opts["pop_all"]
+
+        load_opts = {
+            "zone_or_output_id": zone_or_output_id,
+            "hierarchy": "browse",
+            "count": PAGE_SIZE,
+            "offset": 0,
+        }
+        items = []
+        searchterm = path[-1]
+        path.pop()
+        for element in path:
+            load_opts["offset"] = 0
+            found = None
+            searched = 0
+
+            LOGGER.debug("Looking for %s", element)
+            while searched < total_count and found is None:
+                items = self.browse_load(load_opts)["items"]
+
+                for item in items:
+                    searched += 1
+                    if item["title"] == element:
+                        found = item
+                        break
+
+                load_opts["offset"] += PAGE_SIZE
+            if searched >= total_count and found is None:
+                # Don't log an error here, we will do a substring search
+                # LOGGER.error(
+                #     "Could not find media path element '%s' in %s",
+                #     element,
+                #     [item["title"] for item in items],
+                # )
+                return None
+
+            opts["item_key"] = found["item_key"]
+            load_opts["item_key"] = found["item_key"]
+
+            total_count = self.browse_browse(opts)["list"]["count"]
+
+            load_opts["offset"] = 0
+            items = self.browse_load(load_opts)["items"]
+
+        LOGGER.debug("Searching Playlists for %s", searchterm)
+        load_opts["offset"] = 0
+        searched = 0
+        matched = []
+        while searched < total_count:
+            items = self.browse_load(load_opts)["items"]
+
+            if searchterm == "all":
+                for item in items:
+                    searched += 1
+                    matched.append(item["title"])
+            else:
+                for item in items:
+                    searched += 1
+                    if searchterm in item["title"]:
+                        matched.append(item["title"])
+
+            load_opts["offset"] += PAGE_SIZE
+
+        return matched
+
     def play_media(self, zone_or_output_id, path, action=None):
         """
         Play the media specified.
@@ -444,11 +527,12 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
                 load_opts["offset"] += PAGE_SIZE
             if searched >= total_count and found is None:
-                LOGGER.error(
-                    "Could not find media path element '%s' in %s",
-                    element,
-                    [item["title"] for item in items],
-                )
+                # Don't log an error here, we will do a substring search
+                # LOGGER.error(
+                #     "Could not find media path element '%s' in %s",
+                #     element,
+                #     [item["title"] for item in items],
+                # )
                 return None
 
             opts["item_key"] = found["item_key"]
@@ -639,7 +723,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def _server_discovered(self, host, port):
         """(Auto) discovered the roon server on the network."""
-        LOGGER.info("Connecting to Roon server %s:%s" % (host, port))
+        LOGGER.debug("Connecting to Roon server %s:%s" % (host, port))
         ws_address = "ws://%s:%s/api" % (host, port)
         self._host = host
         self._port = port
@@ -652,7 +736,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def _socket_connected(self):
         """Successfully connected the websocket."""
-        LOGGER.info("Connection with roon websockets (re)created.")
+        LOGGER.debug("Connection with roon websockets (re)created.")
         self.ready = False
         # authenticate / register
         # warning: at first launch the user has to approve the app in the Roon settings.
@@ -662,13 +746,13 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         if self._token:
             appinfo["token"] = self._token
         if not self._token:
-            LOGGER.info("The application should be approved within Roon's settings.")
+            LOGGER.debug("The application should be approved within Roon's settings.")
         else:
-            LOGGER.info("Confirming previous registration with Roon...")
+            LOGGER.debug("Confirming previous registration with Roon...")
         self._roonsocket.send_request(SERVICE_REGISTRY + "/register", appinfo)
 
     def _server_registered(self, reginfo):
-        LOGGER.info("Registered to Roon server %s", reginfo["display_name"])
+        LOGGER.debug("Registered to Roon server %s", reginfo["display_name"])
         LOGGER.debug(reginfo)
         self._token = reginfo["token"]
         self._core_id = reginfo["core_id"]
