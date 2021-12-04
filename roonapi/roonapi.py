@@ -481,6 +481,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return matched
 
     def play_media(self, zone_or_output_id, path, action=None, report_error=True):
+        # pylint: disable=too-many-locals,too-many-branches
         """
         Play the media specified.
 
