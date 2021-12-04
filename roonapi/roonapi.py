@@ -466,7 +466,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         while searched < total_count:
             items = self.browse_load(load_opts)["items"]
 
-            if searchterm == "all":
+            if searchterm == "__all__":
                 for item in items:
                     searched += 1
                     matched.append(item["title"])
