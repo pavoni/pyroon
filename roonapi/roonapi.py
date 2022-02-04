@@ -11,7 +11,6 @@ from .constants import (
     SERVICE_REGISTRY,
     SERVICE_TRANSPORT,
 )
-from .discovery import RoonDiscovery
 from .roonapisocket import RoonApiWebSocket
 
 
@@ -38,7 +37,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
     """Class to handle talking to the roon server."""
 
     _roonsocket = None
-    _roondiscovery = None
     _host = None
     _core_id = None
     _core_name = None
@@ -668,45 +666,55 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         appinfo,
-        token=None,
-        host=None,
-        port=9100,
+        token,
+        host,
+        port,
         blocking_init=True,
-        core_id=None,
     ):
         """
         Set up the connection with Roon.
 
         appinfo: a dict of the required information about the app that should be connected to the api
         token: used for presistant storage of the auth token, will be set to token attribute if retrieved. You should handle saving of the key yourself
-        host: optional the ip or hostname of the Roon server, will be auto discovered if ommitted
-        port: optional the http port of the Roon websockets api. Should be default of 9100
+        host: the ip or hostname of the Roon server,
+        port: the http port of the Roon websockets api.
         blocking_init: By default the init will halt untill the socket is connected and the app is authenticated,
                        if you set bool to False the init will continue but you will only receive data once the connection is fully initialized.
                        The latter is preferred if you're (only) using the callbacks
         """
         self._appinfo = appinfo
         self._token = token
+
         if not appinfo or not isinstance(appinfo, dict):
             raise "appinfo missing or in incorrect format!"
 
-        if host and port:
-            self._server_discovered(host, port)
-        else:
-            self._roondiscovery = RoonDiscovery(self._server_discovered, core_id)
-            self._roondiscovery.start()
+        if not (host and port):
+            raise "host and port of the roon core must be specified!"
+
+        self._server_setup(host, port)
+
         # block untill we're ready
         if blocking_init:
             while not self.ready and not self._exit:
                 time.sleep(1)
+
+        # fill zones and outputs dicts one time so the data is available right away
+        # This might not be needed as the on change callback may have already done this
+        if self.token:
+            if not self._zones:
+                self._zones = self._get_zones()
+            if not self._outputs:
+                self._outputs = self._get_outputs()
+
         # start socket watcher
         thread_id = threading.Thread(target=self._socket_watcher)
         thread_id.daemon = True
         thread_id.start()
+        LOGGER.debug("Finished Roonapi Init")
 
     # pylint: disable=redefined-builtin
     def __exit__(self, type, value, exc_tb):
-        """Stop socket and discovery on exit."""
+        """Stop socket on exit."""
         self.stop()
 
     def __enter__(self):
@@ -714,15 +722,13 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return self
 
     def stop(self):
-        """Stop socket and discovery."""
+        """Stop socket."""
         self._exit = True
-        if self._roondiscovery:
-            self._roondiscovery.stop()
         if self._roonsocket:
             self._roonsocket.stop()
 
-    def _server_discovered(self, host, port):
-        """(Auto) discovered the roon server on the network."""
+    def _server_setup(self, host, port):
+        """Open the roon socket connection to the roon server on the network."""
         LOGGER.debug("Connecting to Roon server %s:%s" % (host, port))
         ws_address = "ws://%s:%s/api" % (host, port)
         self._host = host
@@ -746,7 +752,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         if self._token:
             appinfo["token"] = self._token
         if not self._token:
-            LOGGER.debug("The application should be approved within Roon's settings.")
+            LOGGER.info("The application should be approved within Roon's settings.")
         else:
             LOGGER.debug("Confirming previous registration with Roon...")
         self._roonsocket.send_request(SERVICE_REGISTRY + "/register", appinfo)
@@ -757,13 +763,8 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         self._token = reginfo["token"]
         self._core_id = reginfo["core_id"]
         self._core_name = reginfo["display_name"]
-
-        # fill zones and outputs dicts one time so the data is available right away
-        if not self._zones:
-            self._zones = self._get_zones()
-        if not self._outputs:
-            self._outputs = self._get_outputs()
         # subscribe to state change events
+
         self._roonsocket.subscribe(SERVICE_TRANSPORT, "zones", self._on_state_change)
         self._roonsocket.subscribe(SERVICE_TRANSPORT, "outputs", self._on_state_change)
         # set flag that we're fully initialized (used for blocking init)
@@ -776,6 +777,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         if not msg or not isinstance(msg, dict):
             return
         for state_key, state_values in msg.items():
+            LOGGER.debug("_on_state_change %s", state_key)
             changed_ids = []
             filter_keys = []
             if state_key in [
@@ -855,6 +857,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
     def _request(self, command, data=None):
         """Send command and wait for result."""
+        LOGGER.debug("_request: command: %s", command)
         if not self._roonsocket:
             retries = 20
             while (not self.ready or not self._roonsocket) and retries:
@@ -864,14 +867,22 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 LOGGER.warning("socket is not yet ready")
                 if not self._roonsocket:
                     return None
+        LOGGER.debug("_request: sending")
         request_id = self._roonsocket.send_request(command, data)
         result = None
         retries = 50
         while retries:
             result = self._roonsocket.results.get(request_id)
+            LOGGER.debug(
+                "request: command: %s, retry: %d, success: %s",
+                command,
+                retries,
+                result is not None,
+            )
             if result:
                 break
             retries -= 1
+
             time.sleep(0.05)
         try:
             del self._roonsocket.results[request_id]
@@ -889,5 +900,5 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                     count += 1
                     time.sleep(1)
                 if not self._exit:
-                    self._server_discovered(self._host, self._port)
+                    self._server_setup(self._host, self._port)
             time.sleep(2)
