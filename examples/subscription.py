@@ -14,9 +14,10 @@ appinfo = {
 token = open("mytokenfile").read()
 
 # Take a look at examples/discovery if you want to use discovery.
-server = "192.168.3.60"
+host = "192.168.3.61"
+port = 9330
 
-roonapi = RoonApi(appinfo, token, server)
+roonapi = RoonApi(appinfo, token, host, port)
 
 
 def my_state_callback(event, changed_ids):
@@ -30,7 +31,7 @@ def my_state_callback(event, changed_ids):
 # receive state updates in your callback
 roonapi.register_state_callback(my_state_callback)
 
-time.sleep(60)
+time.sleep(10)
 
 # save the token for next time
 with open("mytokenfile", "w") as f:

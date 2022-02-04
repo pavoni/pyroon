@@ -8,12 +8,13 @@ appinfo = {
     "email": "mygreat@emailaddress.com",
 }
 
-server = "192.168.3.60"
+host = "192.168.3.61"
+port = 9330
 target_zone = "Mixing Speakers"
 # Can be None if you don't yet have a token
 token = open("mytokenfile").read()
 
-roonapi = RoonApi(appinfo, token, server)
+roonapi = RoonApi(appinfo, token, host, port)
 
 # get target zone output_id
 zones = roonapi.zones

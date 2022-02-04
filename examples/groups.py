@@ -14,9 +14,10 @@ token = open("mytokenfile").read()
 
 
 # Take a look at examples/discovery if you want to use discovery.
-server = "192.168.3.60"
+host = "192.168.3.61"
+port = 9330
 
-roonapi = RoonApi(appinfo, token, server)
+roonapi = RoonApi(appinfo, token, host, port)
 
 # get all zones (as dict)
 zones = roonapi.zones
