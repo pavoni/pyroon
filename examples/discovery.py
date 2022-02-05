@@ -41,14 +41,7 @@ for api in apis:
 core_id = api.core_id
 token = api.token
 
-print("Find authorised server via discovery")
-discover = RoonDiscovery(core_id)
-server = discover.first()
-discover.stop()
-
-roonapi = RoonApi(appinfo, token, server[0], server[1], True, core_id)
-print(api.host)
-print(api.core_name)
-print(api.core_id)
-print("Call the API")
-print(roonapi.zones)
+with open("my_core_id_file", "w") as f:
+    f.write(api.core_id)
+with open("my_token_file", "w") as f:
+    f.write(api.token)

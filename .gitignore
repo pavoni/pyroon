@@ -6,4 +6,5 @@ dist/
 roonapi.egg-info/
 .venv
 venv
-mytokenfile
+my_token_file
+my_core_id_file
