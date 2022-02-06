@@ -12,6 +12,12 @@ appinfo = {
 
 discover = RoonDiscovery(None)
 servers = discover.all()
+
+print("Shutdown discovery")
+discover.stop()
+
+print("Found the following servers")
+print(servers)
 apis = [RoonApi(appinfo, None, server[0], server[1], False) for server in servers]
 
 auth_api = []
@@ -27,17 +33,15 @@ print(api.host)
 print(api.core_name)
 print(api.core_id)
 
+print("Shutdown apis")
+for api in apis:
+    api.stop()
+
 # This is what we need to reconnect
 core_id = api.core_id
 token = api.token
 
-print("Shutdown discovery")
-discover.stop()
-for api in apis:
-    api.stop()
-
-print("Find authorised server via discovery")
-roonapi = RoonApi(appinfo, token, None, None, True, core_id)
-
-print("Call the API")
-print(roonapi.zones)
+with open("my_core_id_file", "w") as f:
+    f.write(api.core_id)
+with open("my_token_file", "w") as f:
+    f.write(api.token)

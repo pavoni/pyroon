@@ -16,23 +16,18 @@ from .constants import SOOD_PORT, SOOD_MULTICAST_IP, LOGGER
 class RoonDiscovery(threading.Thread):
     """Class to discover Roon Servers connected in the network."""
 
-    def __init__(self, callback, core_id=None):
+    def __init__(self, core_id=None):
         """Discover Roon Servers connected in the network."""
         self._exit = threading.Event()
         self._core_id = core_id
-        if callback is None:
-            self._discovered_callback = lambda _a, _b: None
-        else:
-            self._discovered_callback = callback
         threading.Thread.__init__(self)
         self.daemon = True
 
     def run(self):
         """Run discovery until server found."""
         while not self._exit.isSet():
-            host, port = self.first()
+            host, _ = self.first()
             if host:
-                self._discovered_callback(host, port)
                 self.stop()
 
     def stop(self):

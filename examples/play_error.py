@@ -1,4 +1,4 @@
-from roonapi import RoonApi
+from roonapi import RoonApi, RoonDiscovery
 
 appinfo = {
     "extension_id": "python_roon_test",
@@ -8,12 +8,20 @@ appinfo = {
     "email": "mygreat@emailaddress.com",
 }
 
-server = "192.168.3.60"
 target_zone = "Mixing Speakers"
-# Can be None if you don't yet have a token
-token = open("mytokenfile").read()
 
-roonapi = RoonApi(appinfo, token, server)
+try:
+    core_id = open("my_core_id_file").read()
+    token = open("my_token_file").read()
+except OSError:
+    print("Please authorise first using discovery.py")
+    exit()
+
+discover = RoonDiscovery(core_id)
+server = discover.first()
+discover.stop()
+
+roonapi = RoonApi(appinfo, token, server[0], server[1], True)
 
 # get target zone output_id
 zones = roonapi.zones
@@ -33,7 +41,3 @@ print("PLAY Something playable - this should work")
 items = roonapi.play_media(
     output_id, ["Qobuz", "My Qobuz", "Favorite Albums", "Grover Live"]
 )
-
-# save the token for next time
-with open("mytokenfile", "w") as f:
-    f.write(roonapi.token)

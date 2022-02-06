@@ -1,4 +1,4 @@
-from roonapi import RoonApi
+from roonapi import RoonApi, RoonDiscovery
 
 appinfo = {
     "extension_id": "python_roon_test",
@@ -8,15 +8,18 @@ appinfo = {
     "email": "mygreat@emailaddress.com",
 }
 
-# Can be None if you don't yet have a token
-token = open("mytokenfile").read()
-# token= None
+try:
+    core_id = open("my_core_id_file").read()
+    token = open("my_token_file").read()
+except OSError:
+    print("Please authorise first using discovery.py")
+    exit()
 
+discover = RoonDiscovery(core_id)
+server = discover.first()
+discover.stop()
+roonapi = RoonApi(appinfo, token, server[0], server[1], True)
 
-# Take a look at examples/discovery if you want to use discovery.
-server = "192.168.3.60"
-
-roonapi = RoonApi(appinfo, token, server)
 
 # get all zones (as dict)
 zones = roonapi.zones
@@ -38,7 +41,3 @@ for (k, v) in outputs.items():
         "grouped_zone_names:",
         grouped_zone_names,
     )
-
-# save the token for next time
-with open("mytokenfile", "w") as f:
-    f.write(roonapi.token)
