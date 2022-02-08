@@ -696,7 +696,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         # block untill we're ready
         if blocking_init:
             while not self.ready and not self._exit:
-                time.sleep(1)
+                time.sleep(0.05)
 
         # fill zones and outputs dicts one time so the data is available right away
         # This might not be needed as the on change callback may have already done this
