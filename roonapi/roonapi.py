@@ -576,11 +576,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 return False
             take_action = found_actions[0]
 
-        if take_action["hint"] != "action":
+        if take_action.get("hint") != "action":
             LOGGER.error(
                 "Found media does not have playable action %s - %s",
                 take_action["title"],
-                take_action["hint"],
+                take_action.get("hint"),
             )
             return False
 
