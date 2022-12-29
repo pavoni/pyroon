@@ -1,10 +1,13 @@
 __pycache__
 .DS_Store
 build/
-roon_test_token.txt
+test_token_file
+test_core_server_file
+test_core_port_file
 dist/
 roonapi.egg-info/
 .venv
 venv
 my_token_file
 my_core_id_file
+.python-version
