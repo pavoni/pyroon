@@ -41,17 +41,13 @@ def test_simple_paths():
 
 def test_edge_cases():
 
-    assert split_media_path("") == [
-    ]
+    assert split_media_path("") == []
 
     assert split_media_path("Library") == [
         "Library",
     ]
 
-    assert split_media_path("/") == [
-    "",
-    ""
-    ]
+    assert split_media_path("/") == ["", ""]
 
 
 def test_quoted_paths():
@@ -67,7 +63,7 @@ def test_quoted_paths():
         "Rock/Pop",
     ]
 
-    assert split_media_path("Genres/\"Rock/Pop\"") == [
+    assert split_media_path('Genres/"Rock/Pop"') == [
         "Genres",
         "Rock/Pop",
     ]
