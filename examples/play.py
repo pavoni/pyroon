@@ -8,7 +8,7 @@ appinfo = {
     "email": "mygreat@emailaddress.com",
 }
 
-target_zone = "Mixing Speakers"
+target_zone = "Study"
 
 try:
     core_id = open("my_core_id_file").read()
