@@ -28,17 +28,17 @@ def roon_api(request):
 
     def teardown():
         roonapi.stop()
+
     request.addfinalizer(teardown)
 
     # initialize Roon api and register the callback for state changes
     roonapi = RoonApi(appinfo, token, host, port, True)
     return roonapi
 
+
 def test_get_volume_db(roon_api):
     db_zone = [
-        zone
-        for zone in roon_api.zones.values()
-        if zone["display_name"] == "95 Office"
+        zone for zone in roon_api.zones.values() if zone["display_name"] == "95 Office"
     ][0]
 
     db_zone_volume_info = db_zone["outputs"][0]["volume"]
@@ -51,6 +51,7 @@ def test_get_volume_db(roon_api):
 
     roon_api.change_volume_raw(db_zone_output_id, -40)
     assert roon_api.get_volume_percent(db_zone_output_id) == 50
+
 
 def test_get_volume_perent(roon_api):
     percent_zone = [
@@ -70,11 +71,10 @@ def test_get_volume_perent(roon_api):
     roon_api.change_volume_raw(percent_zone_output_id, 50)
     assert roon_api.get_volume_percent(percent_zone_output_id) == 50
 
+
 def test_set_volume_db(roon_api):
     db_zone = [
-        zone
-        for zone in roon_api.zones.values()
-        if zone["display_name"] == "95 Office"
+        zone for zone in roon_api.zones.values() if zone["display_name"] == "95 Office"
     ][0]
 
     db_zone_volume_info = db_zone["outputs"][0]["volume"]
@@ -88,6 +88,7 @@ def test_set_volume_db(roon_api):
 
     roon_api.set_volume_percent(db_zone_output_id, 50)
     assert roon_api.get_volume_percent(db_zone_output_id) == 50
+
 
 def test_set_volume_percent(roon_api):
     percent_zone = [
@@ -108,11 +109,10 @@ def test_set_volume_percent(roon_api):
     roon_api.set_volume_percent(percent_zone_output_id, 50)
     assert roon_api.get_volume_percent(percent_zone_output_id) == 50
 
+
 def test_change_volume_db(roon_api):
     db_zone = [
-        zone
-        for zone in roon_api.zones.values()
-        if zone["display_name"] == "95 Office"
+        zone for zone in roon_api.zones.values() if zone["display_name"] == "95 Office"
     ][0]
 
     db_zone_volume_info = db_zone["outputs"][0]["volume"]
@@ -126,6 +126,7 @@ def test_change_volume_db(roon_api):
 
     roon_api.change_volume_percent(db_zone_output_id, -2)
     assert roon_api.get_volume_percent(db_zone_output_id) == 39
+
 
 def test_change_volume_percent(roon_api):
     percent_zone = [
