@@ -233,15 +233,93 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         data = {"output_id": output_id, "how": how}
         return self._request(SERVICE_TRANSPORT + "/mute", data)
 
-    def change_volume(self, output_id, value, method="absolute"):
+    def set_volume_percent(self, output_id, absolute_value):
         """
-        Change the volume of an output.
+        Set the volume of an output to a 0-100 value.
 
-        For convenience you can always just give the new volume level as percentage.
+        Roon endpoints have a few different volume scales - this method scales from 0-100
+        to what the endpoint needs.
 
         params:
             output_id: the id of the output
-            value: The new volume value, or the increment value or step (as percentage)
+        """
+        volume_data = self._outputs[output_id].get("volume")
+
+        if volume_data is None:
+            LOGGER.info("This endpoint has fixed volume.")
+            return None
+
+        volume_max = volume_data["max"]
+        volume_min = volume_data["min"]
+        volume_range = volume_max - volume_min
+        volume_percentage_factor = volume_range / 100
+        percentage_volume = volume_min + absolute_value * volume_percentage_factor
+        return self.change_volume_raw(output_id, percentage_volume)
+
+    def change_volume_percent(self, output_id, relative_value):
+        """
+
+        Change the volume of an output by a relative amount.
+
+        Roon endpoints have a few different volume scales - this method scales from 0-100
+        to what the endpoint needs.
+
+        params:
+            output_id: the id of the output
+            relative_value: How much to increase or decrease the volume
+        """
+        volume_data = self._outputs[output_id].get("volume")
+
+        if volume_data is None:
+            LOGGER.info("This endpoint has fixed volume.")
+            return None
+
+        volume_max = volume_data["max"]
+        volume_min = volume_data["min"]
+        volume_range = volume_max - volume_min
+        volume_percentage_factor = volume_range / 100
+
+        volume_percentage_change = int(round(relative_value * volume_percentage_factor))
+        return self.change_volume_raw(output_id, volume_percentage_change, "relative")
+
+    def get_volume_percent(self, output_id):
+        """
+
+        Get the volume of an output.
+
+        Roon endpoints have a few different volumee scales - this method scales from 0-100
+        to what the endpoint needs.
+
+        params:
+            output_id: the id of the output
+            relative_value: How much to increase or decrease the volume
+        """
+
+        volume_data = self._outputs[output_id].get("volume")
+
+        if volume_data is None:
+            LOGGER.info("This endpoint has fixed volume.")
+            return None
+
+        volume_max = volume_data["max"]
+        volume_min = volume_data["min"]
+        volume_range = volume_max - volume_min
+        volume_percentage_factor = volume_range / 100
+
+        raw_level = float(volume_data["value"])
+        percent_level = (raw_level - volume_min) / volume_percentage_factor
+        return int(round(percent_level))
+
+    def change_volume_raw(self, output_id, value, method="absolute"):
+        """
+        Change the volume of an output.
+
+        Roon endpoint have a few different scales - this endpoints just used the native scale.
+        The percent calls may be easier to use
+
+        params:
+            output_id: the id of the output
+            value: The new volume value, or the increment value or step
             method: How to interpret the volume ('absolute'|'relative'|'relative_step')
         """
         if "volume" not in self._outputs[output_id]:
@@ -250,9 +328,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         # Home assistant was catching this - so catch here
         # to try and diagnose what needs to be checked.
         try:
-            if method == "absolute":
-                if self._outputs[output_id]["volume"]["type"] == "db":
-                    value = int((float(value) / 100) * 80) - 80
             data = {"output_id": output_id, "how": method, "value": value}
             return self._request(SERVICE_TRANSPORT + "/change_volume", data)
         except Exception as exc:  # pylint: disable=broad-except
