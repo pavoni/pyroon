@@ -54,15 +54,14 @@ def test_callbacks():
         assert callback_count == 0
         assert events == []
 
-        roonapi.change_volume(test_output_id, 1, method="relative")
+        roonapi.change_volume_raw(test_output_id, 1, method="relative")
         assert callback_count == 2
         assert events == ["zones_changed", "outputs_changed"]
 
         events = []
 
-        roonapi.change_volume(test_output_id, -1, method="relative")
+        roonapi.change_volume_raw(test_output_id, -1, method="relative")
         assert callback_count == 4
         assert events == ["zones_changed", "outputs_changed"]
 
         roonapi.stop()
-        token = roonapi.token
