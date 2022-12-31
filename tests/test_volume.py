@@ -43,13 +43,31 @@ def test_get_volume_db(roon_api):
 
     db_zone_volume_info = db_zone["outputs"][0]["volume"]
     db_zone_output_id = db_zone["outputs"][0]["output_id"]
+
     roon_api.change_volume_raw(db_zone_output_id, -80)
+
+    vol = [
+        zone for zone in roon_api.zones.values() if zone["display_name"] == "95 Office"
+    ][0]["outputs"][0]["volume"]["value"]
+    assert vol == -80
+
     assert roon_api.get_volume_percent(db_zone_output_id) == 0
 
     roon_api.change_volume_raw(db_zone_output_id, 0)
+
+    vol = [
+        zone for zone in roon_api.zones.values() if zone["display_name"] == "95 Office"
+    ][0]["outputs"][0]["volume"]["value"]
+    assert vol == 0
+
     assert roon_api.get_volume_percent(db_zone_output_id) == 100
 
     roon_api.change_volume_raw(db_zone_output_id, -40)
+    vol = [
+        zone for zone in roon_api.zones.values() if zone["display_name"] == "95 Office"
+    ][0]["outputs"][0]["volume"]["value"]
+    assert vol == -40
+
     assert roon_api.get_volume_percent(db_zone_output_id) == 50
 
 
@@ -62,13 +80,37 @@ def test_get_volume_perent(roon_api):
 
     percent_zone_volume_info = percent_zone["outputs"][0]["volume"]
     percent_zone_output_id = percent_zone["outputs"][0]["output_id"]
+
     roon_api.change_volume_raw(percent_zone_output_id, 0)
+
+    vol = [
+        zone
+        for zone in roon_api.zones.values()
+        if zone["display_name"] == "Gregs Mac System"
+    ][0]["outputs"][0]["volume"]["value"]
+    assert vol == 0
+
     assert roon_api.get_volume_percent(percent_zone_output_id) == 0
 
     roon_api.change_volume_raw(percent_zone_output_id, 100)
+    vol = [
+        zone
+        for zone in roon_api.zones.values()
+        if zone["display_name"] == "Gregs Mac System"
+    ][0]["outputs"][0]["volume"]["value"]
+    assert vol == 100
+
     assert roon_api.get_volume_percent(percent_zone_output_id) == 100
 
     roon_api.change_volume_raw(percent_zone_output_id, 50)
+
+    vol = [
+        zone
+        for zone in roon_api.zones.values()
+        if zone["display_name"] == "Gregs Mac System"
+    ][0]["outputs"][0]["volume"]["value"]
+    assert vol == 50
+
     assert roon_api.get_volume_percent(percent_zone_output_id) == 50
 
 
