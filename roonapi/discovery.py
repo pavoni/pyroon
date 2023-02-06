@@ -52,10 +52,10 @@ class RoonDiscovery(threading.Thread):
         if self.sood_file_dir is None:
             self.sood_file_dir = os.path.dirname(os.path.abspath(__file__))
         sood_file = os.path.join(self.sood_file_dir, ".soodmsg")
-        LOGGER.debug("sood_file: %s" % sood_file)
+        LOGGER.info("sood_file: %s" % sood_file)
         with open(sood_file) as sood_query_file:
             msg = sood_query_file.read()
-            LOGGER.debug(".soodmsg: %s" % msg)
+            LOGGER.info(".soodmsg: %s" % msg)
         msg = msg.encode()
         entries = []
 
