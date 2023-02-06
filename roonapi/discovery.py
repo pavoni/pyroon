@@ -9,19 +9,21 @@ import os.path
 import socket
 import threading
 
-from .soodmessage import FormatException, SOODMessage
-from .constants import SOOD_PORT, SOOD_MULTICAST_IP, LOGGER
+from soodmessage import FormatException, SOODMessage
+from constants import SOOD_PORT, SOOD_MULTICAST_IP, LOGGER
 
 
 class RoonDiscovery(threading.Thread):
     """Class to discover Roon Servers connected in the network."""
 
-    def __init__(self, core_id=None):
+    # JS: 2023-02-06: change so that .soodmsg can be in a defnite location, otherwise compiled (PyInstaller) version can't find it
+    def __init__(self, core_id=None, sood_file_dir=None):
         """Discover Roon Servers connected in the network."""
         self._exit = threading.Event()
         self._core_id = core_id
         threading.Thread.__init__(self)
         self.daemon = True
+        self.sood_file_dir = sood_file_dir
 
     def run(self):
         """Run discovery until server found."""
@@ -46,10 +48,14 @@ class RoonDiscovery(threading.Thread):
     # pylint: disable=too-many-locals
     def _discover(self, first_only=False):
         """Update the server entry with details."""
-        this_dir = os.path.dirname(os.path.abspath(__file__))
-        sood_file = os.path.join(this_dir, ".soodmsg")
+        # JS: 2023-02-06: change so that .soodmsg can be in a defnite location, otherwise compiled (PyInstaller) version can't find it
+        if self.sood_file_dir is None:
+            self.sood_file_dir = os.path.dirname(os.path.abspath(__file__))
+        sood_file = os.path.join(self.sood_file_dir, ".soodmsg")
+        print("sood_file: %s" % sood_file)
         with open(sood_file) as sood_query_file:
             msg = sood_query_file.read()
+            print(".soodmsg: %s" % msg)
         msg = msg.encode()
         entries = []
 
