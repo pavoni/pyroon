@@ -30,7 +30,7 @@ mypy = ">=0.650"
 pydocstyle = "3.0.0"
 pylint = "==2.4.3"
 pytest = "==5.2.1"
-
+black = "22.12"
 
 [tool.black]
 line-length = 88
