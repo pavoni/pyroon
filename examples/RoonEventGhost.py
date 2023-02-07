@@ -1,8 +1,6 @@
 import sys
+# path to roonapi folder
 sys.path.append('\\pyRoon\\pyRoonLibrary\\pyroon-master\\roonapi')
-sys.path.append('\\pyRoon\\roonServiceManager\\Lib\\site-packages')
-# from roonapi import roonapi, soodmessage, discovery, constants
-# from roonapi import discovery
 import roonapi, discovery, constants
 import time, os
 import json
@@ -44,6 +42,7 @@ def main():
         hostname = socket.gethostname()
         roon.register_volume_control("1", hostname, volume_control_callback, 0, "incremental")
         while True:
+            time.sleep(0.1)
             pass
 
     finally:
