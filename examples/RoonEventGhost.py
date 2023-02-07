@@ -13,7 +13,7 @@ dataFolder = None
 dataFile = None
 inDebugger = getattr(sys, 'gettrace', None)
 appinfo = {
-    "extension_id": "sonnabend.roon.servicemanager",
+    "extension_id": "sonnabend.roon.egvolume",
     "display_name": "EG Volume",
     "display_version": "1.0.0",
     "publisher": "sonnabend",
