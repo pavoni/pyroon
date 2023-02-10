@@ -68,6 +68,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return self._host
 
     @property
+    def port(self):
+        """Return the roon port."""
+        return self._port
+
+    @property
     def core_id(self):
         """Return the roon host."""
         return self._core_id
@@ -375,7 +380,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             id_filter = [id_filter]
         self._state_callbacks.append((callback, event_filter, id_filter))
 
-    def register_queue_callback(self, callback, zone_or_output_id=""):
+    def register_queue_callback(self, callback, zone_or_output_id):
         """
         Subscribe to queue change events.
 
@@ -385,7 +390,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         if zone_or_output_id:
             opt_data = {"zone_or_output_id": zone_or_output_id}
         else:
-            opt_data = None
+            opt_data = ""
         self._roonsocket.subscribe(SERVICE_TRANSPORT, "queue", callback, opt_data)
 
     def browse_browse(self, opts):
@@ -394,6 +399,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
         reference: https://github.com/RoonLabs/node-roon-api-browse/blob/master/lib.js
         """
+        # time.sleep(16) # this is for testing REMOVE IT FOR PRODUCTION
         return self._request(SERVICE_BROWSE + "/browse", opts)
 
     def browse_load(self, opts):
