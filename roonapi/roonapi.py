@@ -21,7 +21,7 @@ def split_media_path(path):
     return [*csv.reader([path], delimiter="/")][0]
 
 
-class RoonApi:  # pylint: disable=too-many-instance-attributes
+class RoonApi:  # pylint: disable=too-many-instance-attributes, too-many-lines
     """Class to handle talking to the roon server."""
 
     _roonsocket = None
@@ -803,7 +803,9 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
 
         self._roonsocket.register_connected_callback(self._socket_connected)
         self._roonsocket.register_registered_calback(self._server_registered)
-        self._roonsocket.register_volume_controls_callback(self._on_volume_control_request)
+        self._roonsocket.register_volume_controls_callback(
+            self._on_volume_control_request
+        )
 
         self._roonsocket.start()
 
@@ -971,9 +973,19 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                     self._server_setup(self._host, self._port)
             time.sleep(2)
 
-    def register_volume_control(self, control_key, display_name, callback, initial_volume=0, volume_type="number",
-                                volume_step=2, volume_min=0, volume_max=100, is_muted=False):
-        ''' register a new volume control on the api'''
+    def register_volume_control(
+        self,
+        control_key,
+        display_name,
+        callback,
+        initial_volume=0,
+        volume_type="number",
+        volume_step=2,
+        volume_min=0,
+        volume_max=100,
+        is_muted=False,
+    ):
+        """Register a new volume control on the api."""
         if control_key in self._volume_controls:
             LOGGER.error("source_control %s is already registered!" % control_key)
             return
@@ -985,7 +997,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             "volume_value": initial_volume,
             "volume_step": volume_step,
             "is_muted": is_muted,
-            "control_key": control_key
+            "control_key": control_key,
         }
         self._volume_controls[control_key] = (callback, control_data)
         if self._volume_controls_request_id:
@@ -993,27 +1005,28 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             self._roonsocket.send_continue(self._volume_controls_request_id, data)
 
     def update_volume_control(self, control_key, volume=None, mute=None):
-        ''' update an existing volume control, report its state to Roon '''
+        """Update an existing volume control, report its state to Roon."""
         if control_key not in self._volume_controls:
             LOGGER.warning("volume_control %s is not (yet) registered!" % control_key)
-            return
+            return False
         if not self._volume_controls_request_id:
             LOGGER.warning("Not yet registered, can not update volume control")
             return False
-        if volume != None:
+        if volume is not None:
             self._volume_controls[control_key][1]["volume_value"] = volume
-        if mute != None:
+        if mute is not None:
             self._volume_controls[control_key][1]["is_muted"] = mute
         data = {"controls_changed": [self._volume_controls[control_key][1]]}
         self._roonsocket.send_continue(self._volume_controls_request_id, data)
+        return True
 
     def _on_volume_control_request(self, event, request_id, data):
-        ''' got request from roon server for a volume control registered on this endpoint'''
+        """Got request from roon server for a volume control registered on this endpoint."""
         if event == "subscribe_controls":
             LOGGER.debug("found subscription ID for volume controls: %s " % request_id)
             # send all volume controls already registered (handle connection loss)
             controls = []
-            for callback, control_data in self._volume_controls.values():
+            for _, control_data in self._volume_controls.values():
                 controls.append(control_data)
             self._roonsocket.send_continue(request_id, {"controls_added": controls})
             self._volume_controls_request_id = request_id
@@ -1022,9 +1035,14 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             if event == "set_volume" and data["mode"] == "absolute":
                 value = data["value"]
             elif event == "set_volume" and data["mode"] == "relative":
-                value = self._volume_controls[control_key][1]["volume_value"] + data["value"]
+                value = (
+                    self._volume_controls[control_key][1]["volume_value"]
+                    + data["value"]
+                )
             elif event == "set_volume" and data["mode"] == "relative_step":
-                value = self._volume_controls[control_key][1]["volume_value"] + (data["value"] * data["volume_step"])
+                value = self._volume_controls[control_key][1]["volume_value"] + (
+                    data["value"] * data["volume_step"]
+                )
             elif event == "set_mute":
                 value = data["mode"] == "on"
             else:
@@ -1032,6 +1050,6 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             try:
                 self._roonsocket.send_complete(request_id, "Success")
                 self._volume_controls[control_key][0](control_key, event, value)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 LOGGER.exception("Error in volume_control callback")
                 self._roonsocket.send_complete(request_id, "Error")

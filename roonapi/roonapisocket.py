@@ -153,7 +153,7 @@ class RoonApiWebSocket(
             elif CONTROL_VOLUME in header:
                 # incoming message for volume_control endpoint
                 event = header.split("/")[-1]
-                LOGGER.debug("CONTROL_VOLUME endpoint %", event)
+                LOGGER.debug("CONTROL_VOLUME endpoint %s", event)
                 if self._volume_controls_callback:
                     self._volume_controls_callback(event, request_id, body)
             elif request_id in self._subscriptions:
