@@ -38,6 +38,19 @@ def volume_control_callback(control_key, event, value):
         "volume_control_callback control_key: %s event: %s value: %s"
         % (control_key, event, value)
     )
+
+    # DO WHAT YOU NEED TO DO TO CHANGE THE VOLUME HERE
+    if event == "set_volume":
+        print("CHANGE VOLUME TO: %s" % (value))
+    elif event == "set_mute":
+        if value:
+            print("MUTE VOLUME")
+        else:
+            print("UNMUTE VOLUME")
+    else:
+        print("COMMAND NOT SUPPORTED - %s" % (event))
+
+    # Feedback to roon
     if event == "set_volume":
         roonapi.update_volume_control(control_key, value)
     elif event == "set_mute":
@@ -45,7 +58,7 @@ def volume_control_callback(control_key, event, value):
 
 
 roonapi.register_volume_control(
-    "1", VOLUME_OUTPUT, volume_control_callback, -50, "db", 2, -100, 0, True
+    "1", VOLUME_OUTPUT, volume_control_callback, 0, "db", 2, -150, 0, True
 )
 
 time.sleep(100)
