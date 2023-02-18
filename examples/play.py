@@ -51,3 +51,6 @@ items = roonapi.play_media(
 
 print("PLAY SUB GENRE")
 items = roonapi.play_media(output_id, ["Genres", "Jazz", "Cool"])
+
+print("TAG")
+items = roonapi.play_media(output_id, ["Library", "Tags", "Mix"])

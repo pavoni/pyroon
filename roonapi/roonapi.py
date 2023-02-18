@@ -541,7 +541,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return matched
 
     def play_media(self, zone_or_output_id, path, action=None, report_error=True):
-        # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
+        # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements,too-many-statements
         """
         Play the media specified.
 
@@ -642,13 +642,19 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
                 return False
             take_action = found_actions[0]
 
-        if take_action["hint"] != "action":
-            LOGGER.error(
-                "Found media does not have playable action %s - %s",
-                take_action["title"],
-                take_action["hint"],
-            )
-            return False
+            try:
+                if take_action["hint"] != "action":
+                    LOGGER.error(
+                        "Found media does not have playable action %s - %s",
+                        take_action["title"],
+                        take_action["hint"],
+                    )
+                    return False
+            except KeyError:
+                # I think this is a roon API error -
+                # when playing a tag - there should be a hint here!
+                # so for now just ignore - and hope it's OK
+                pass
 
         opts["item_key"] = take_action["item_key"]
         load_opts["item_key"] = take_action["item_key"]

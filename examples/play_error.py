@@ -39,5 +39,5 @@ items = roonapi.play_media(output_id, ["Qobuz", "My Qobuz", "Favorite Albums"])
 
 print("PLAY Something playable - this should work")
 items = roonapi.play_media(
-    output_id, ["Qobuz", "My Qobuz", "Favorite Albums", "Grover Live"]
+    output_id, ["Qobuz", "My Qobuz", "Favorite Albums", "Umiera Piekno"]
 )
