@@ -541,7 +541,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
         return matched
 
     def play_media(self, zone_or_output_id, path, action=None, report_error=True):
-        # pylint: disable=too-many-locals,too-many-branches
+        # pylint: disable=too-many-locals,too-many-branches,too-many-return-statements
         """
         Play the media specified.
 
@@ -598,7 +598,11 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes
             opts["item_key"] = found["item_key"]
             load_opts["item_key"] = found["item_key"]
 
-            total_count = self.browse_browse(opts)["list"]["count"]
+            try:
+                total_count = self.browse_browse(opts)["list"]["count"]
+            except TypeError:
+                LOGGER.error("Exception trying to play media")
+                return None
 
             load_opts["offset"] = 0
             items = self.browse_load(load_opts)["items"]
