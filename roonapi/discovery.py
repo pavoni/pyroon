@@ -43,7 +43,7 @@ class RoonDiscovery(threading.Thread):
         all_servers = self._discover(first_only=True)
         return all_servers[0] if all_servers else (None, None)
 
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,unspecified-encoding
     def _discover(self, first_only=False):
         """Update the server entry with details."""
         this_dir = os.path.dirname(os.path.abspath(__file__))
