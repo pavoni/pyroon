@@ -15,7 +15,7 @@ repository = "https://github.com/pavoni/pyroon"
 homepage = "https://github.com/pavoni/pyroon"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.7.2"
 ifaddr = ">=0.1.0"
 requests = ">=2.0"
 six = ">=1.10.0"
@@ -23,13 +23,13 @@ websocket_client = ">=1.4.0"
 
 [tool.poetry.dev-dependencies]
 flake8-docstrings = ">=1.3.0"
-flake8 = ">=3.6.0"
+flake8 = "=5.0.4"
 flake8-quotes = "^3.2.0"
 mypy = ">=0.650"
 pydocstyle = "3.0.0"
-pylint = "==2.4.3"
+pylint = "==2.16.2"
 pytest = "==5.2.1"
-black = "22.12"
+black = "23.1.0"
 
 [tool.black]
 line-length = 88
