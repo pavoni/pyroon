@@ -365,15 +365,21 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes, too-many-lines
         data = {"zone_or_output_id": zone_or_output_id, "shuffle": shuffle}
         return self._request(SERVICE_TRANSPORT + "/change_settings", data)
 
-    def repeat(self, zone_or_output_id, repeat=True):
+    def repeat(self, zone_or_output_id, repeat="loop"):
         """
         Enable/disable playing in a loop.
 
         params:
             zone_or_output_id: the id of the output or zone
-            repeat: bool if repeat should be enabled. False will disable shuffle
+            repeat: "loop", "loop_one", "disabled"
+
+        For backward compatability repeat can also be boolean with true meaning "loop" and false "disabled"
         """
-        loop = "loop" if repeat else "disabled"
+        if repeat in ("loop", "loop_one", "disabled"):
+            loop = repeat
+        else:
+            loop = "loop" if repeat else "disabled"
+
         data = {"zone_or_output_id": zone_or_output_id, "loop": loop}
         return self._request(SERVICE_TRANSPORT + "/change_settings", data)
 
