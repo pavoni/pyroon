@@ -15,6 +15,23 @@ from .constants import (
 from .roonapisocket import RoonApiWebSocket
 
 
+class RoonApiException(Exception):
+    """An exception to raise when the roon api can't initialise or work.
+
+    Can be called with a  string to get a default message, e.g.
+
+        RoonApiException("There is a problem.")
+    """
+
+    def __init__(self, message=None):
+        """Pass on the reason string."""
+        if message is None:
+            msg = "No exception mesage provided."
+        else:
+            msg = message
+        super().__init__(msg)
+
+
 def split_media_path(path):
     """Split a path (eg path/to/media) into a list for use by play_media."""
 
@@ -768,10 +785,10 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes, too-many-lines
         self._token = token
 
         if not appinfo or not isinstance(appinfo, dict):
-            raise "appinfo missing or in incorrect format!"
+            raise RoonApiException("Appinfo missing or in incorrect format")
 
         if not (host and port):
-            raise "host and port of the roon core must be specified!"
+            raise RoonApiException("Host and port of the roon core must be specified!")
 
         self._server_setup(host, port)
 

@@ -25,7 +25,7 @@ roonapi = RoonApi(appinfo, token, server[0], server[1], True)
 zones = roonapi.zones
 outputs = roonapi.outputs
 
-for (k, v) in outputs.items():
+for k, v in outputs.items():
     zone_id = v["zone_id"]
     output_id = k
     display_name = v["display_name"]

@@ -7,7 +7,6 @@ from roonapi import split_media_path
 
 
 def test_simple_paths():
-
     assert split_media_path("Library/Artists/Neil Young") == [
         "Library",
         "Artists",
@@ -40,7 +39,6 @@ def test_simple_paths():
 
 
 def test_edge_cases():
-
     assert split_media_path("") == []
 
     assert split_media_path("Library") == [
@@ -51,7 +49,6 @@ def test_edge_cases():
 
 
 def test_quoted_paths():
-
     assert split_media_path('"Library"/Artists/Neil Young') == [
         "Library",
         "Artists",

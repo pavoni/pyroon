@@ -169,7 +169,6 @@ class RoonApiWebSocket(
         except Exception:  # pylint: disable=broad-except
             LOGGER.exception("Error while parsing message '%s'", message)
 
-    # pylint: disable=no-self-use
     def on_error(self, w_socket, error=None):
         """Handle error callback."""
         if not error:

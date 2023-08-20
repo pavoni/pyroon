@@ -9,7 +9,6 @@ from roonapi import RoonApi
 
 
 def test_basic():
-
     try:
         host = open("test_core_server_file").read()
         port = open("test_core_port_file").read()
@@ -27,7 +26,6 @@ def test_basic():
     }
 
     with RoonApi(appinfo, token, host, port, True) as roonapi:
-
         # Test basic zone fetching
         zones = [zone["display_name"] for zone in roonapi.zones.values()]
         zones.sort()
