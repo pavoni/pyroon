@@ -1037,6 +1037,24 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes, too-many-lines
             data = {"controls_added": [control_data]}
             self._roonsocket.send_continue(self._volume_controls_request_id, data)
 
+    def unregister_volume_control(
+        self,
+        control_key,
+    ):
+        """Delete a new volume control on the api."""
+
+        if control_key not in self._volume_controls:
+            LOGGER.error("source_control %s is not registered!" % control_key)
+            return
+        control_data = {
+            "control_key": control_key,
+        }
+        del self._volume_controls[control_key]
+
+        if self._volume_controls_request_id:
+            data = {"controls_removed": [control_data]}
+            self._roonsocket.send_continue(self._volume_controls_request_id, data)
+
     def update_volume_control(self, control_key, volume=None, mute=None):
         """Update an existing volume control, report its state to Roon."""
         if control_key not in self._volume_controls:
