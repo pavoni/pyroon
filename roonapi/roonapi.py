@@ -272,9 +272,15 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes, too-many-lines
 
         volume_max = volume_data["max"]
         volume_min = volume_data["min"]
+        volume_step = volume_data["step"]
         volume_range = volume_max - volume_min
         volume_percentage_factor = volume_range / 100
         percentage_volume = volume_min + absolute_value * volume_percentage_factor
+
+        # If the endpoint steps are integer - then round the scaled result
+        if int(volume_step) == volume_step:
+            percentage_volume = int(round(percentage_volume))
+
         return self.change_volume_raw(output_id, percentage_volume)
 
     def change_volume_percent(self, output_id, relative_value):
@@ -324,6 +330,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes, too-many-lines
 
         volume_max = volume_data["max"]
         volume_min = volume_data["min"]
+
         volume_range = volume_max - volume_min
         volume_percentage_factor = volume_range / 100
 
