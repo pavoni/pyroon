@@ -18,7 +18,6 @@ homepage = "https://github.com/pavoni/pyroon"
 python = "^3.7.2"
 ifaddr = ">=0.1.0"
 requests = ">=2.0"
-six = ">=1.10.0"
 websocket_client = ">=1.4.0"
 
 [tool.poetry.dev-dependencies]
