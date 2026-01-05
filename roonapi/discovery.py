@@ -25,7 +25,7 @@ class RoonDiscovery(threading.Thread):
 
     def run(self):
         """Run discovery until server found."""
-        while not self._exit.isSet():
+        while not self._exit.is_set():
             host, _ = self.first()
             if host:
                 self.stop()
@@ -61,7 +61,7 @@ class RoonDiscovery(threading.Thread):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.sendto(msg, ("<broadcast>", SOOD_PORT))
             sock.settimeout(5)
-            while not self._exit.isSet():
+            while not self._exit.is_set():
                 try:
                     data, server = sock.recvfrom(1024)
                     message = SOODMessage(data).as_dictionary

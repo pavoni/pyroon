@@ -768,7 +768,7 @@ class RoonApi:  # pylint: disable=too-many-instance-attributes, too-many-lines
         return True
 
     # private methods
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments,disable=too-many-positional-arguments
     def __init__(
         self,
         appinfo,
